@@ -6,7 +6,6 @@ date:   2020-03-28 11:00:00 +0530
 categories: DeepLearning CrossEntropy Optimization Loss Distance LinearRegression Divergence KullbackLeibler Entropy
 comments: yes
 ---
-# Introduction
 When looking at a Deep Learning related project or paper, there are four fundamental parts for me: data, network architecture, optimization method and loss function. As the title suggests, here will focus on the last part. Loss functions are deeply tied to the task one is trying to solve, and are often used as measures of progress during training. In this post we are going to see where they come from and why we using the ones we do. This first part will cover losses for the tasks of regression and classification.
 
 ## Basic concepts and notation
