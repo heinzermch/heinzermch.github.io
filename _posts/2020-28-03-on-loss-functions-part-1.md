@@ -1,7 +1,8 @@
 ---
 layout: post
-author: michael
+author: Michael Heinzer
 title:  "On Loss Functions - Part I"
+description: An introduction to loss functions for regression and classification, with some mathematical motivation
 date:   2020-03-28 11:00:00 +0530
 categories: DeepLearning CrossEntropy Optimization Loss Distance LinearRegression Divergence KullbackLeibler Entropy
 comments: yes
@@ -12,6 +13,7 @@ When looking at a Deep Learning related project or paper, there are four fundame
 
 Before we start, let us quickly repeat some basic concepts and their notation. Readers familiar with the topic may skip this section. This is not meant to be an introduction to probability theory or other mathematical concepts, only a quick refresh of what we will need later on.
 
+- **Definition**: If a term on the left hand side of the equation is defined as as the right hand side term, then $$:=$$ will be used. This is similar to setting a variable in programming. As an example we can set $$g(x)$$ to be $$x^2$$ by writing $$g(x) := x^2$$. In mathematics, when writing simply $$=$$ means that the left side implies the right (denoted by $$\Rightarrow$$) and right side the left (denoted by $$\Leftarrow$$), at the same time.
 - **Logarithm**: $$\log : (0,\infty) \longrightarrow (-\infty, \infty)$$. One of the basic function in calculus, known as the inverse of the exponential function $$ x = \exp(\log(x)) $$. It has some other properties which we will need later on:
   - $$ \log(xy) = \log(x) + \log(y)$$ and $$\log\big(\frac{x}{y}\big) = \log(x) - log(y)$$
   - For two bases $$b, k$$, we have that $$ \log_b(x) = \frac{\log_k(x)}{\log_k(b)} = C \cdot log_k(x) $$ where $$C = \frac{1}{\log_k(b)}$$ is a constant because it does not depend on $$x$$. This means that a change of basis in the log is only a multiplication by a constant.
@@ -30,7 +32,7 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
     - The right limit is 1: $$ \sigma(x)_{x \longrightarrow \infty } = 1 $$
     - At zero we are in the middle of the limits: $$ \sigma(0) = 0.5$$
   - The derivative of the sigmoid is $$\frac{\partial \sigma(x)}{\partial x} =  \sigma(x) (1-\sigma(x))$$
-- **Softplus**: $$ \zeta : (-\infty,\infty) \longrightarrow (0,\infty)$$ is defined as $$ \zeta(x) = \log(1+\exp(x))$$ the name comes from its close relationship with the function $$x^+ = \max(0,x)$$, which deep learning practitioners know as rectified linear unit (ReLU). It is essentially a softer version of $$x^+$$ which becomes apparent when we draw them. It will also frequently show up when we manipulate sigmoid functions in connection with Maximum Likelihood.
+- **Softplus**: $$ \zeta : (-\infty,\infty) \longrightarrow (0,\infty)$$ is defined as $$ \zeta(x) := \log(1+\exp(x))$$ the name comes from its close relationship with the function $$x^+ = \max(0,x)$$, which deep learning practitioners know as rectified linear unit (ReLU). It is essentially a softer version of $$x^+$$ which becomes apparent when we draw them. It will also frequently show up when we manipulate sigmoid functions in connection with Maximum Likelihood.
   - This plot shows the difference between softplus and ReLU
     ![Plot of softplus and ReLU](/assets/images/loss_functions_part_1/softplus_relu_plot.png)
   - Some other noteworthy properties:
@@ -39,7 +41,7 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
 - **Random Variable**: A variable whose values depend on the outcomes of a random phenomenon, we usually denote it by $$X$$ (upper case) and an outcome by $$x$$ (lower case). An example would be a random variable X which represents a coin throw, it can take value zero for head or one for tail.
 - **Probability Distribution**: A function $$p$$ associated with a random variable $$X$$, it will tell us how likely an outcome $$x \in X$$ is. In the case of a fair coin, we will have $$p_X(0) = p_X(1) = \frac{1}{2} $$. We usually omit the subscript $$p_X$$ and only write $$p$$ for simplicity.
   If we have an unnormalized probability distribution we will denote it with a hat: $$\hat{P}$$. An unnormalized probability distribution does not need to sum up to one.
-- **Expectation**: For a random variable $$X$$ the expectation is defined as $$ E(X) = \sum_{x \in X} p(x)  x$$. A weighted average of all the outcomes of a random variable (weighted by the probability). The expectation of the coin throw example is $$E(X) = 0 \cdot p(0) + 1 \cdot p(1) = 0 \cdot \frac{1}{2} + 1 \cdot \frac{1}{2} = \frac{1}{2}$$.
+- **Expectation**: For a random variable $$X$$ the expectation is defined as $$ E(X) := \sum_{x \in X} p(x)  x$$. A weighted average of all the outcomes of a random variable (weighted by the probability). The expectation of the coin throw example is $$E(X) = 0 \cdot p(0) + 1 \cdot p(1) = 0 \cdot \frac{1}{2} + 1 \cdot \frac{1}{2} = \frac{1}{2}$$.
 - **(Strictly) Increasing transformation**: a function $$ f : \mathbb{R} \longrightarrow \mathbb{R}$$ is a (strictly) increasing transformation if for all $$x, y \in \mathbb{R}$$ with $$ x \leq y$$ ($$x < y$$) we have that $$f(x) \leq f(y)$$ ($$f(x) < f(y)$$). These transformations have the property that we can apply them without changing the result whenever we care only about the ordering of elements, for example when minimizing a function.
 - **Maximum Likelihood Estimation**: For a probability distribution $$p_\theta$$ with parameter $$\theta$$ and data $$ \lbrace x_1, \dotsc, x_n \rbrace$$ we can estimate $$\theta$$ by maximizing the probability over the data: $$\theta = \text{argmax}_{\theta} p_{\theta}(x) = \prod_{i=1}^n p_{\theta}(x_i)$$. This is called maximum likelihood estimation. Often it is more convenient to maximize the log likelihood instead, and because the log is a strictly increasing transformation the result will not change. The log transformation has the additional benefit that the product becomes a sum: $$\theta = \text{argmax}_{\theta} \log(p_{\theta}(x)) = \sum_{i=1}^n \log(p_{\theta}(x_i))$$. Which is beneficial when doing numerical optimization.
 
@@ -66,7 +68,7 @@ These four conditions have straightforward interpretations. The first one tells 
 
 The most well known example of a distance would be the Euclidean distance. In its general form the Euclidean distance between two n-dimensional real vectors $$x$$ and $$y$$, $$x,y \in \mathbb{R}^n $$, is defined as follows:
 
-$$ d_E(x,y) = \sqrt{\sum_{i=1}^{n} (x_i - y_i)^2 }$$
+$$ d_E(x,y) := \sqrt{\sum_{i=1}^{n} (x_i - y_i)^2 }$$
 
 It is also often called the L2 norm, and denoted by $$\mid\mid \cdot \mid\mid_2$$. In the two dimensional case this reduces to well known formula for calculating the hypotenuse of a triangle:
 
@@ -120,7 +122,7 @@ The Kullback-Leibler divergence or KL-divergence is often used to compare two pr
 
 The KL-divergence of two probability distributions $$p$$ and $$q$$ is defined as
 
-$$D_{KL}(p \mid\mid q) = \sum_{x \in X} p(x) \log\bigg(\frac{p(x)}{q(x)}\bigg) = - \sum_{x \in X} p(x) \log\bigg(\frac{q(x)}{p(x)}\bigg).$$
+$$D_{KL}(p \mid\mid q) := \sum_{x \in X} p(x) \log\bigg(\frac{p(x)}{q(x)}\bigg) = - \sum_{x \in X} p(x) \log\bigg(\frac{q(x)}{p(x)}\bigg).$$
 
 In the third term we simply switched the order of $$p$$ and $$q$$ to take out a minus sign, this form of the KL-Divergence will show up later. Note that we can view the KL-divergence as the expectation of the logarithmic difference between $$p$$ and $$q$$. This is because of
 
@@ -140,7 +142,7 @@ $$I(x) = - \log(p(x))$$.
 
 For $$p$$ a probability distribution on a random variable $$X$$, the entropy $$H$$ of $$p$$ is defined as
 
-$$H_b(p) = -\sum_{x \in X} p(x) \log_b(p(x)) = E(I(X))$$
+$$H_b(p) := -\sum_{x \in X} p(x) \log_b(p(x)) = E(I(X))$$
 
 where $$b$$ is the base of the logarithm which is used to choose the units of information. If $$b=2$$ then the unit of information is bits, if $$b=e$$ then the unit is nats. However changing the base will only rescale entropy, it will not change the order of different distributions, i.e. if $$H_2(p) > H_2(q)$$ then $$H_e(p) > H_e(q)$$ for two probability distributions $$p, q$$. 
 
@@ -150,7 +152,7 @@ The term on the right hand side shows an interpretation of the entropy, it can b
 
 The cross-entropy between two probability distributions $$p$$ an $$q$$ is defined as
 
-$$H(p,q) = H(p) + D_{KL}( p \mid \mid q) $$
+$$H(p,q) := H(p) + D_{KL}( p \mid \mid q) $$
 
 This tells us cross-entropy is the sum of the entropy of the target variable and the penalty which we incur by approximating the true distribution $$p$$ with the distribution $$q$$. The terms can be simplified:
 
@@ -218,14 +220,18 @@ Remember that $$\sigma(x) = \frac{\exp(x)}{1+\exp(x)}$$, $$z \in \lbrace 0,1 \rb
 
 - For $$z = 0$$: We have that $$P(z) = P(0) = \sigma((0-1)y) = \sigma(-y) = \frac{\exp(-y)}{1+\exp(-y)}$$. 
   - $$\lim_{y \longrightarrow \infty} = \frac{\exp(-y)}{1+\exp(-y)} = 0$$
-  - This means in the case that the true label is zero, and our model output $$y =f(x)$$ goes towards $$\infty$$, the probability of the label being zero is $$0$$.
+  
+    This means in the case that the true label is zero, and our model output $$y =f(x)$$ goes towards $$\infty$$, the probability of the label being zero is $$0$$.
   - $$\lim_{y \longrightarrow -\infty} = \frac{\exp(-y)}{1+\exp(-y)} = 1$$
-  - This means in the case that the true label is zero, and our model output $$y =f(x)$$ goes towards $$-\infty$$, the probability of the label being zero is $$1$$. 
+  
+    This means in the case that the true label is zero, and our model output $$y =f(x)$$ goes towards $$-\infty$$, the probability of the label being zero is $$1$$. 
 - For $$z = 1$$: We have that $$P(z) = P(1) = \sigma((2-1)y) = \sigma(y) = \frac{\exp(y)}{1+\exp(y)}$$
   - $$\lim_{y \longrightarrow \infty} = \frac{\exp(y)}{1+\exp(y)} = 1$$
-  - This means in the case that the true label is one, and our model output $$y =f(x)$$ goes towards $$\infty$$, the probability of the label being one is $$1$$.
+  
+    This means in the case that the true label is one, and our model output $$y =f(x)$$ goes towards $$\infty$$, the probability of the label being one is $$1$$.
   - $$\lim_{y \longrightarrow -\infty} = \frac{\exp(y)}{1+\exp(y)} = 0$$
-  - This means in the case that the true label is one, and our model output $$y =f(x)$$ goes towards $$-\infty$$, the probability of the label being one is $$0$$.
+  
+    This means in the case that the true label is one, and our model output $$y =f(x)$$ goes towards $$-\infty$$, the probability of the label being one is $$0$$.
 
 After this slightly tedious motivation we can now finally apply the cross-entropy loss to our model. In the case of two classes, with true class $$z$$ and predicted probability $$p = \sigma((2z-1)y)$$, it reduces to
 
