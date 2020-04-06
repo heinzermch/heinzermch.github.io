@@ -257,6 +257,8 @@ So our loss ends up being a softplus function, again due to the convoluted last 
 
 In both cases when the prediction is wrong, the derivative of the function approximates one, the loss function will not shrink the gradient no matter how wrong the prediction is.
 
+<u>Question</u>: Do you see why adding a ReLu after the last layer is not great but does not have a large influence on classification performance?
+
 ### What happens if we use a different loss function?
 
 Suppose we use a different loss function such as quadratic loss: $$l(x) = x^2$$. Then our loss term becomes 
@@ -353,3 +355,5 @@ A list of resources used to write this post, also useful for further reading:
 - [Loss functions for training deep learning neural networks](https://machinelearningmastery.com/loss-and-loss-functions-for-training-deep-learning-neural-networks/) Blog post, for discussion on various losses
 
 ## Comments
+
+I would be happy to hear about any mistakes or inconsistencies in my post. Other suggestions are of course also welcome. You can either write me a comment below or find my email address on the [about page](https://heinzermch.github.io/about/).
