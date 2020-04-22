@@ -356,4 +356,4 @@ A list of resources used to write this post, also useful for further reading:
 
 ## Comments
 
-I would be happy to hear about any mistakes or inconsistencies in my post. Other suggestions are of course also welcome. You can either write me a comment below or find my email address on the [about page](https://heinzermch.github.io/about/).
+I would be happy to hear about any mistakes or inconsistencies in my post. Other suggestions are of course also welcome. You can either write a comment below or find my email address on the [about page](https://heinzermch.github.io/about/).
