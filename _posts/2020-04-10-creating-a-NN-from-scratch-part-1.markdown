@@ -3,14 +3,14 @@ layout: post
 author: Michael Heinzer
 title:  "Creating a Neural Network from scratch - Part I"
 description: Explaining and coding the basic concepts of deep learning
-date:   2020-04-17 11:00:00 +0530
-categories: DeepLearning ComputerVision GradientDescent BatchNorm NeuralNetwork Initialization MatrixMultiplication LinearLayer ReLU
+date:   2020-04-24 11:00:00 +0530
+categories: DeepLearning ComputerVision GradientDescent NeuralNetwork Initialization MatrixMultiplication LinearLayer ReLU FullyConnected
 comments: yes
 published: true
 ---
 
 
-The goal of this post is to create the basic building blocks of a neural network from scratch. This means without using any PyTorch or Tensorflow library functionalities, but in the end the code should look as simple as when using them. This work is  based on the fast.ai course called deep learning from the foundations which gives an introduction similar to this over multiple lectures. It is highly recommended to watch the entire course.
+The goal of this post is to create the basic building blocks of a neural network from scratch. This means without using any PyTorch or Tensorflow library functionalities, but in the end the code should look as simple as when using them. This work is  based on the fast.ai course called deep learning from the foundations which gives an introduction similar to this over multiple lectures. I highly recommended watching the entire course.
 
 Even though the goal is to write a library, whenever a new concept is introduced we will also explore the accompanying mathematical part.
 
@@ -749,7 +749,7 @@ In the best case the gradient will be shrunk by a factor of one fourth. This wil
 
 Now on to the multi-dimensional case where the sigmoid is replaced by a softmax.
 
-$$\frac{\partial l_{MSES}(\mathbf{y}, \mathbf{y_T})}{\partial \mathbf{y}}  = \begin{pmatrix}
+$$\nabla_{\mathbf{y}} l_{MSES}(\mathbf{y}, \mathbf{y_T}) = \begin{pmatrix}
  \frac{1}{n} \sum_{i=1}^n  \frac{\partial}{\partial y_1} (s_i - y_{Ti})^2\\
  \frac{1}{n} \sum_{i=1}^n  \frac{\partial}{\partial y_2}(s_i - y_{Ti})^2\\
 \vdots   \\

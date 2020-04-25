@@ -12,7 +12,7 @@ fig, ax = plt.subplots(1)
 plt.ylim(top=1, bottom=-0.5)
 plt.xlim(left=-5, right=5)
 
-ax.set_title('The sigmoid and its derivative')
+ax.set_title('The Sigmoid And Its Derivative')
 
 x = np.arange(-5, 5, 0.01)
 ppl.plot(ax, x, sigmoid(x), label='sigmoid(x)', linewidth=1.0)

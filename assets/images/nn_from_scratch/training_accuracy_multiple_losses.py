@@ -9,7 +9,7 @@ fig, ax = plt.subplots(1)
 plt.ylim(top=y_top, bottom=y_bottom)
 plt.xlim(left=x_left, right=x_right)
 
-ax.set_title('Accuracy for different losses on 100 images')
+ax.set_title('Accuracy For Different Losses On 100 Images')
 
 x_values = [i for i in range(51)]
 accuracy_ce = [0.13, 0.21, 0.2, 0.65, 0.6, 0.71, 0.74, 0.78, 0.81, 0.84, 0.83, 0.87, 0.82, 0.88, 0.84, 0.88, 0.87, 0.9, 0.9, 0.91, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]

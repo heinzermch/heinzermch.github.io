@@ -15,7 +15,7 @@ fig, ax = plt.subplots(1)
 plt.ylim(top=y_top, bottom=y_bottom)
 plt.xlim(left=x_left, right=x_right)
 
-ax.set_title('Gradient Descent on f')
+ax.set_title('Gradient Descent On f')
 
 x = np.arange(x_left, x_right, 0.01)
 ppl.plot(ax, x, f(x), label='f(x)', linewidth=1.0)

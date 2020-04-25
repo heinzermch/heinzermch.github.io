@@ -6,7 +6,7 @@ fig, ax = plt.subplots(1)
 plt.ylim(top=5, bottom=0)
 plt.xlim(left=0, right=1)
 
-ax.set_title('Loss functions on [0,1]')
+ax.set_title('Loss Functions on [0,1]')
 
 x = np.arange(0.01, 1, 0.01)
 ppl.plot(ax, x, -1*np.log(x), label='-log(x)', linewidth=1.0)
