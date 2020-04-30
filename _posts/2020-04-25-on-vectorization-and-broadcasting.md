@@ -254,6 +254,7 @@ Other tasks
 
 - Exponential and logarithmic function applied element wise `np.exp(array)` and `np.log(array)`.
 - Unique values in an array `np.unique(array)`.
+- Some more
 
 # Broadcasting
 
