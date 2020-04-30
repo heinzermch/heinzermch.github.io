@@ -252,8 +252,8 @@ This is a common task, and when you look at the number of elements involved `128
 
 Other tasks
 
-- Exponential and logarithmic function applied element wise `np.exp(array)` and `np.log(array)`
-- 
+- Exponential and logarithmic function applied element wise `np.exp(array)` and `np.log(array)`.
+- Unique values in an array `np.unique(array)`.
 
 # Broadcasting
 
