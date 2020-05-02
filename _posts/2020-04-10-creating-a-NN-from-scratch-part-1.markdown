@@ -796,15 +796,16 @@ class MSES:
         return np.mean(np.power(self.softmax(input)-target, 2))
 
     def gradient(self) -> np.ndarray:
+        batch_size, classes = self.input.shape
         softmax = self.softmax(self.input)
-        mse_gradient = 2.0 * (softmax - self.target) / np.multiply(*self.input.shape)
-        softmax_horizontal, softmax_vertical = softmax[:, :, None], softmax[:, None, :]
-        indicator = np.diag([1] * softmax.shape[1])[None, :, :]
-        gradient = mse_gradient[:, :, None] * softmax_vertical * (indicator - softmax_horizontal)
-        return np.sum(gradient, axis=1)
+        left_terms = softmax[:, None, :] - self.target[:, None, :]
+        middle_terms = softmax[:, None, :]
+        right_terms = np.diag([1] * classes)[None, :, :] - softmax[:, :, None]
+        gradients = 2.0 / (batch_size * classes) * left_terms * middle_terms * right_terms
+        return np.sum(gradients, axis=2)
 ```
 
-Note that the last line is calculating the sum we also see in the gradient. The line before that is providing all the terms in the sum. Before that we are only resizing the arrays among various dimensions to make the final calculation possible in two lines.
+Note that the last line is calculating the sum we also see in the gradient. The second last line is providing all the product terms needed for the summation. Before that we are only resizing the arrays among various dimensions to make the final calculation possible in two lines. If you are curious about how and why that works, there is a detailed explanation in this [post](https://heinzermch.github.io/posts/on-vectorization-and-broadcasting/).
 
 ### Cross-Entropy
 
