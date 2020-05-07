@@ -15,6 +15,7 @@ When looking at a Deep Learning related project or paper, there are four fundame
 Before we start, let us quickly repeat some basic concepts and their notation. Readers familiar with the topic may skip this section. This is not meant to be an introduction to probability theory or other mathematical concepts, only a quick refresh of what we will need later on.
 
 - **Definition**: If a term on the left hand side of the equation is defined as as the right hand side term, then $$:=$$ will be used. This is similar to setting a variable in programming. As an example we can set $$g(x)$$ to be $$x^2$$ by writing $$g(x) := x^2$$. In mathematics, when writing simply $$=$$ means that the left side implies the right (denoted by $$\Rightarrow$$) and right side the left (denoted by $$\Leftarrow$$), at the same time.
+
 - **Logarithm**: $$\log : (0,\infty) \longrightarrow (-\infty, \infty)$$. One of the basic function in calculus, known as the inverse of the exponential function $$ x = \exp(\log(x)) $$. It has some other properties which we will need later on:
   - $$ \log(xy) = \log(x) + \log(y)$$ and $$\log\big(\frac{x}{y}\big) = \log(x) - log(y)$$
   - For two bases $$b, k$$, we have that $$ \log_b(x) = \frac{\log_k(x)}{\log_k(b)} = C \cdot log_k(x) $$ where $$C = \frac{1}{\log_k(b)}$$ is a constant because it does not depend on $$x$$. This means that a change of basis in the log is only a multiplication by a constant.
@@ -25,6 +26,7 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
     - Log goes to minus infinity when approaching zero: $$\lim_{x \longrightarrow 0 } \log(x) = -\infty$$
     - one is the only value for which log is equal to zero: $$\log(1) = 0 $$
     - Even if the graph looks like its flattening, it does actually go to infinity:$$ \lim_{x \longrightarrow \infty} \log(x) = \infty $$
+  
 - **Sigmoid**: $$ \sigma : (-\infty,\infty) \longrightarrow (0,1)$$, is defined as $$ \sigma(x) := \frac{1}{1+\exp(-x)} = \frac{\exp(x)}{1+\exp(x)}$$. It has the property that it maps any value to the open interval $$(0,1)$$, which is very useful if we want to extract a probability from a model.
   - The plot looks as follows:
     ![Plot of sigmoid(x)](/assets/images/loss_functions_part_1/sigmoid_plot.png)
@@ -33,18 +35,32 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
     - The right limit is 1: $$ \sigma(x)_{x \longrightarrow \infty } = 1 $$
     - At zero we are in the middle of the limits: $$ \sigma(0) = 0.5$$
   - The derivative of the sigmoid is $$\frac{\partial \sigma(x)}{\partial x} =  \sigma(x) (1-\sigma(x))$$
+  
 - **Softplus**: $$ \zeta : (-\infty,\infty) \longrightarrow (0,\infty)$$ is defined as $$ \zeta(x) := \log(1+\exp(x))$$ the name comes from its close relationship with the function $$x^+ = \max(0,x)$$, which deep learning practitioners know as rectified linear unit (ReLU). It is essentially a softer version of $$x^+$$ which becomes apparent when we draw them. It will also frequently show up when we manipulate sigmoid functions in connection with Maximum Likelihood.
   - This plot shows the difference between softplus and ReLU
     ![Plot of softplus and ReLU](/assets/images/loss_functions_part_1/softplus_relu_plot.png)
   - Some other noteworthy properties:
     - The log sigmoid is softplus: $$ -\log(\sigma(x)) = - \zeta(-x)$$
     - The derivative of softplus is sigmoid: $$ \frac{\partial \zeta(x)}{\partial x} = \frac{\exp(x)}{1+\exp(x)} = \sigma(x)$$
+  
 - **Random Variable**: A variable whose values depend on the outcomes of a random phenomenon, we usually denote it by $$X$$ (upper case) and an outcome by $$x$$ (lower case). An example would be a random variable X which represents a coin throw, it can take value zero for head or one for tail.
+
 - **Probability Distribution**: A function $$p$$ associated with a random variable $$X$$, it will tell us how likely an outcome $$x \in X$$ is. In the case of a fair coin, we will have $$p_X(0) = p_X(1) = \frac{1}{2} $$. We usually omit the subscript $$p_X$$ and only write $$p$$ for simplicity.
   If we have an unnormalized probability distribution we will denote it with a hat: $$\hat{P}$$. An unnormalized probability distribution does not need to sum up to one.
+  
 - **Expectation**: For a random variable $$X$$ the expectation is defined as $$ E(X) := \sum_{x \in X} p(x)  x$$. A weighted average of all the outcomes of a random variable (weighted by the probability). The expectation of the coin throw example is $$E(X) = 0 \cdot p(0) + 1 \cdot p(1) = 0 \cdot \frac{1}{2} + 1 \cdot \frac{1}{2} = \frac{1}{2}$$.
+
 - **(Strictly) Increasing transformation**: a function $$ f : \mathbb{R} \longrightarrow \mathbb{R}$$ is a (strictly) increasing transformation if for all $$x, y \in \mathbb{R}$$ with $$ x \leq y$$ ($$x < y$$) we have that $$f(x) \leq f(y)$$ ($$f(x) < f(y)$$). These transformations have the property that we can apply them without changing the result whenever we care only about the ordering of elements, for example when minimizing a function.
-- **Maximum Likelihood Estimation**: For a probability distribution $$p_\theta$$ with parameter $$\theta$$ and data $$ \lbrace x_1, \dotsc, x_n \rbrace$$ we can estimate $$\theta$$ by maximizing the probability over the data: $$\theta = \text{argmax}_{\theta} p_{\theta}(x) = \prod_{i=1}^n p_{\theta}(x_i)$$. This is called maximum likelihood estimation. Often it is more convenient to maximize the log likelihood instead, and because the log is a strictly increasing transformation the result will not change. The log transformation has the additional benefit that the product becomes a sum: $$\theta = \text{argmax}_{\theta} \log(p_{\theta}(x)) = \sum_{i=1}^n \log(p_{\theta}(x_i))$$. Which is beneficial when doing numerical optimization.
+
+- **Maximum Likelihood Estimation**: For a probability distribution $$p_\theta$$ with parameter $$\theta$$ and data $$ \lbrace x_1, \dotsc, x_n \rbrace$$ we can estimate $$\theta$$ by maximizing the probability over the data:
+
+  $$\theta = \text{argmax}_{\theta} p_{\theta}(x) = \prod_{i=1}^n p_{\theta}(x_i)$$
+
+  This is called maximum likelihood estimation. Often it is more convenient to maximize the log likelihood instead, and because the log is a strictly increasing transformation the result will not change. The log transformation has the additional benefit that the product becomes a sum: 
+
+  $$\theta = \text{argmax}_{\theta} \log(p_{\theta}(x)) = \sum_{i=1}^n \log(p_{\theta}(x_i))$$
+
+  Which is beneficial when doing numerical optimization.
 
 # Notions of distance
 
