@@ -155,7 +155,7 @@ Often we consider $$p$$ to be the true distribution and $$q$$ the approximation 
 
 The self-information of an event $$x \in X$$ in a probability distribution $$p$$ is defined as
 
-$$I(x) = - \log(p(x))$$.
+$$I(x) = - \log(p(x))$$
 
 For $$p$$ a probability distribution on a random variable $$X$$, the entropy $$H$$ of $$p$$ is defined as
 

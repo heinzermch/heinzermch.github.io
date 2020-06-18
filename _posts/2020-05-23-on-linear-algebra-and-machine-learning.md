@@ -943,7 +943,11 @@ $$\begin{pmatrix}
 - Examples positive definite
 - Equivalence positive definite
 - Examples Eigenvalue calculation, multiple approaches
-- Add interview questions
+- Add interview questions for Systematica, check both rounds
+- diagonalizable
+- def of hermitian similar
+- better $$\|$$ for entire website
+- 
 
 # Conclusion
 
