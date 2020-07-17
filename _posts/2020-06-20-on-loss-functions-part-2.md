@@ -472,21 +472,33 @@ If we were to use the Dice loss with gradient decent we would have to multiply i
 
 While the Dice loss is a nice construct and has useful properties, in reality we almost always use cross-entropy as loss function for semantic segmentation task. Also because the extension to multiple classes is straightforward. The cross-entropy can be applied pixel wise and summed up to create a loss function over an entire prediction map.
 
-### Basic Cross-Entropy
+### Binary cross-entropy
 
 Previous posts go into much more detail about [why cross-entropy is a good loss function for classification](https://heinzermch.github.io/posts/on-loss-functions-part-1/) and [how to derive the gradient and implement it in NumPy](https://heinzermch.github.io/posts/creating-a-NN-from-scratch-part-1/). Here we simply restate the results from these posts and look at the outcome if we apply it to semantic segmentation. The binary cross-entropy loss for a two class problem with predicted probability $$p$$ and ground truth $$g$$ is:
 
 $$l_{CE}(p, g) = -(g\log(p) + (1-g)\log(1-p))$$
 
-When we apply this over the an entire image, the loss can be similarely defined as
+When we apply this over the an entire image, the loss can be defined as a function
 
 $$l_{CE} : \lbrace 0, 1 \rbrace^{n \times m}  \times [0,1]^{n \times m} \longrightarrow \mathbb{R}$$
 
-with
+where
 
-$$l_D(P, G) := -\frac{1}{nm} \sum^m_{j=1} \sum^n_{i=1}  g_{ij}\log(p_{ij}) + (1-g_{ij})\log(1-p_{ij})$$
+$$l_{CE}(P, G) := - \sum^m_{j=1} \sum^n_{i=1}  g_{ij}\log(p_{ij}) + (1-g_{ij})\log(1-p_{ij})$$
 
-The ground truth label $$g_{ij}$$ acts as indicator function to switch to the term which is relevant.
+The ground truth label $$g_{ij}$$ acts as indicator function to switch to the term which is relevant. The gradient of prediction $$p_{xy}$$ for $$1 \leq x \leq n$$ and $$1 \leq y leq m$$ is
+
+$$ = $$
+
+$$\begin{align*} 
+ \frac{\partial l_D(P,G)}{\partial p_{xy}}&= -\sum^m_{j=1} \sum^n_{i=1}  \frac{\partial}{\partial p_{xy}}g_{ij}\log(p_{ij}) + \frac{\partial}{\partial p_{xy}}(1-g_{ij})\log(1-p_{ij})   \\ 
+  &= -g_{xy}\frac{\partial}{\partial p_{xy}}\log(p_{xy}) + (1-g_{xy})\frac{\partial}{\partial p_{xy}}\log(1-p_{xy})    \\
+ &= -\frac{g_{xy}}{p_{xy}} - \frac{1-g_{xy}}{1-p_{xy}} \\
+&=  -\mathbb{1}_{g_{xy} = 1}\frac{1}{p_{xy}} + \mathbb{1}_{g_{xy}=0}\frac{1}{1-p_{xy}}
+
+\end{align*}$$
+
+
 
 ### Weighted Cross-Entropy
 
