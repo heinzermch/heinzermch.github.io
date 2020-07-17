@@ -947,7 +947,8 @@ $$\begin{pmatrix}
 - diagonalizable
 - def of hermitian similar
 - better $$\|$$ for entire website
-- 
+- Relate innter product to any positive-definite matrix. Relationship with kernels in SVM
+- Add Gram matrix and applications in NN style transfer
 
 # Conclusion
 
