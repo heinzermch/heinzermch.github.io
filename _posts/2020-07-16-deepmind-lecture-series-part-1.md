@@ -389,16 +389,131 @@ Questions:
 
 
 
-## Episode 6 - Sequences and
+## Episode 6 - Sequences and Recurrent Neural Networks
 
-## Episode 7 - Deep Learning for
+### 01 - Motivation
 
-## Episode 8 - Attention and
+So far vectors and images as inputs, now we look at sequences. Collections of elements where
 
-## Episode 9 - Generative
+- Elements can be repeated
+- Order matters
+- Variable length (potentially infinite)
 
-## Episode 10 - Unsupervised
+Sequences are everywhere: words, letters, speech, videos, images, programs, decision making.
 
-## Episode 11 - Modern Latent
+### 02 - Fundamentals
 
-## Episode 12 - Responsible
+Training machine learning models, the four basic questions to answer: data, model, loss and optimization for the supervised case. In sequence we have
+
+- Data: $$\lbrace x \brace_i$$
+- Model: probaliity of a sequence $$p(x) = f_{\thetha}(x)
+- Loss: loss of log sum
+- Optimization similar than supervised case,
+
+Modeling word probabilites is really difficult. Simplest model, product of individual words. But independence assumption does not match the real distribution.
+
+More realistic model, conditional probability on previous words $$p(x_t) = p(x_t \mid x_1, \dotsc, x_{t-1})$$. Use the chain rule to get the joint probability. Has scalability issues, matrix of of size $$n \times n$$. Scales with $$vocabulary^N$$ where $$N$$ is the length of the sentence. Early NLP, fix windows size, called N-grams. Downsides, does not take into account words that are more than $$N$$ words away, data table is still huge.
+
+Summary: Modeling probabilities of sequences scales badly
+
+Learning to model word probabilities
+
+1. Vectorising the context, approximate $$p(x_t \mid x_1, \dotsc, x_{t-1}) = p(x_t \mid h)$$
+
+   Need the following properties for $$f_{\theta}$$
+
+   1. Order matters
+   2. Variable length
+   3. Lernable (differentiable)
+   4. Individual changes can have large effects (long-term dependency)
+
+2. Modeling conditional probabilities. Desirable properties
+
+   1. Individual changes can have large effects
+   2. Returns probability distribution
+
+#### Recurrent Neural Networks (RNN)
+
+Persistent state ariable $$h$$ stores the information from the context observed so far
+
+Two steps
+
+1. Calculate hidden state $$h_t$$ from $$x_t, h_{t-1}$$
+2. Predict the target $$y_{t+1}$$
+
+We can unroll RNNs to backpropage. Loss is cross-entropy at each time step $$t$$, and sum up over all the words in a sentence. Paremeters $$\theta = W_y, W_x, W_h$$. Differentiating w.r.t. to $$W_y,$$, $$W_h$$ and $$W_y$$.
+
+- $$h_t$$
+- $$p(x_{t+1})$$
+- $$L_{\theta}(y, \hat{y})_t$$
+
+Need to back propagate through time. (Equations)
+
+Vanishing gradients. Intuition example
+
+- $$h_t = W_h h_{t-1}, h_t = (W_h)^t h_0$$ This will either go to infinity or to 0 depending on the norm of $$\mid W_h \mid$$.
+
+Values are bounded by thanh, but the gradients are still affected by it. No gradients if value is not close to -1 or 1. How can we capture long-term dependencies?
+
+#### Long short-Term Memory (LSTM) networks
+
+Keeps a cell state $$c_t$$ and a some gates
+
+- forget gate, combines current input and previous state : formula
+- input gates: formula
+- Output gate: formula
+
+Whats missing: gradients are not vanishing due to the path they can take through $$c_t$$, not going through, not talking about gate gate, LSTM are more closer to ResNet because of the skip connections. There are also GRU, similar than LSTM and more recent.
+
+### 03 - Generation
+
+Using a trained model to generate new sequences, so far we focused on optimizing the log probability estimates produced by model. An alternative way to use them is generation.
+
+Input first word and get $$\hat{y}$$, autoregressively  create a sequence. Use argmax to get maximum probability from the first output and put that in again
+
+#### Imags as sequences PixelRCNN
+
+Softmax Sampling over the entire image, starting on top left, interesting to look on the distribution for each pixel. It produces some okay looking image, but not great to state of the art.
+
+#### Natural languages as sequences
+
+Sequence-to-sequence models, start with english words and use that as initial state, then start outputting japanese words. Flexible setup
+
+- One to one
+- One to many
+- many to one
+- many to many (RNN)
+- many to many  (sequence to sequence)
+
+Google Neural machine Translation: Encoder and Decoder structure. Almost closed the gap between human and machine translation.
+
+Image captioning: start with features from an image passed trough a neural network.
+
+#### Audio waves as sequences
+
+Audio waves as sequences: convolutions. Using dilated conolutions, predict one signal at once. Taking into account various time scales.
+
+#### Policies as sequences
+
+Models which sequentially decide where to paint on a canvas. Using RL to draw like a human inside a drawing program. OpenAI five and Alphastar playing games using LSTM.
+
+AlphaStar architecture. The core is an LSTM which gets fed different inputs
+
+#### Attention for sequences: transformers
+
+Transformers vs. convolutions. Transformers is connected to every input, but weighted by attention. Example GPT2 which adapts to style and content.
+
+### Questions
+
+- Do models focus only on local consistency? Could be mixed with a memory module to incorporate truly long term connections, need more hierarchy in the model.
+- Deep learning is hard to reconcile with symbolic learning, reasoning level is hard to measure. Can't see if it learns concepts.
+- No constraints on hidden states, hard to interpret them, how they are working. Very model specific. Hard to get an intuitive understanding.
+
+### Highlights
+
+- Nice gradient calculation to show vanishing gradients in RNN
+- Overview of properties and different models (RNN, LSTM, Conv, Transformers)
+
+## Conclusion of first half of the course
+
+Love the breadth of the lectures, sad that the questions are so hard to hear, the lecturers should repeat or summarize them quickly (as in the Stanford class o)
