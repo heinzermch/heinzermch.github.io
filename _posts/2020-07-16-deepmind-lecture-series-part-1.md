@@ -1,10 +1,10 @@
 ---
 layout: post
 author: Michael Heinzer
-title:  "DeepMind lecture series"
-description: Taking notes and summarizing
+title:  "DeepMind Lecture Series - Part I"
+description: Notes from the first six lectures
 date:   2020-07-15 11:00:00 +0530
-categories: None
+categories: MachineLearning AI Convolutions Optimization Sequences NeuralNetworks ComputerVision
 comments: no
 published: no
 ---
@@ -12,49 +12,241 @@ I was watching this DeepMind lecture series. Would like to see more about Deep R
 
 ## Episode 1 - Introduction to Machine Learning and AI
 
-Overview: Not technical at all, few formulas
 
-### First part, what is intelligence?
 
-Somewhat mathematical definition
+### 01 - Solving Intelligence
+
+What is intelligence? Intelligence measures an agent’s ability to achieve goals in a wide range of environments. Or more technically we can define intelligence as
 
 $$\Upsilon(\pi) := \sum_{\mu \in E} 2^{-K(\mu)}V^{\pi}_{\mu}$$
 
-Why choosing games to solve intelligence? Framework of reinforcement learning, why use Deep Learning on top. 
+Where 
 
-### Second part: AlphaGo and AlphaZero. 
+- $$\Upsilon(\pi)$$ is the universal intelligence of agent $$\pi$$.
+- $$\sum_{\mu \in E}$$ is the sum over all environments $$E$$
+- $$K(\mu)$$ the Kolmogorov complexity function, a complexity penalty. Note that $$2^{-K(\mu)}$$ becomes smaller for more complex environments, this measure gives more weight to simple tasks.
+- $$V^{\pi}_{\mu}$$ is the value achieved in environment $$\mu$$ by agent $$\pi$$.
 
-Having a policy and value network. Innovation of having self-play to improve, and generate training data. Interesting slide on amount of search per decision, chess engine vs. AlphaZero vs. Humans. Rediscovering human plays.
+ For more details you can read the paper [here](https://arxiv.org/abs/0712.3329), the above formula can be found on page 23. This formula can be easily applied inside the reinforcement learning framework, where an agent interacts with the environment and receives rewards. The image below visualizes the concept in a very abstract way, the agent (left) interacts with the world (right) by giving it instructions (bottom) and receiving updates (reward, state).
 
-### Third part: Learning to Play with Capture the flag
+![Abstract visualization of reinforcement learning](/assets/images/deepmind_lecture_part_1/e01_01_reinforcement_learning.png)
 
-Multi-Agent playing, more complicated rewards. Can procedurally generate environments. Train a population of agents?? Each agent trains individually. Sounds kind of like evolutionary algorithms. Interesting that Humans can only win against agents if playing with an agent, very collaborative.
+Why did DeepMind choose games to solve intelligence?
 
-### Fourth part: Folding Proteins with AlphaFold
+1. Microcosms of the real world
+2. Stimulate intelligence by presenting a diverse set of challenges
+3. Good to test in simulations. They are efficient and we can run thousands of them in parallel, they are faster than real time experiments
+4. Progress and performance can be easily measured against humans.
 
-Main issue is how to map the problem into a structure that allows for the application of deep learning. Levinthal's paradox, how does nature solve the problem? Deep learning applies because we have samples for 150,000 proteins from experiments, but data is difficult to get. Impressive that it can be applied at all, usually much more data is required, for example speech and vision. Can take a full PhD thesis to sequence a single protein. Problem can be mapped onto an image
+There is another [talk](https://www.youtube.com/watch?v=3N9phq_yZP0&list=PLqYmG7hTraZC9yNDSlv0_1ctNaG1WKuIx) where Demis Hassabis explains in more detail the reasoning of why DeepMind chose to solve games first.
 
-### Highlights: 
+![Abstract visualization of reinforcement learning in games](/assets/images/deepmind_lecture_part_1/e01_01_reinforcement_learning_in_games.png)
 
-Definition of intelligence, T-SNE view of how policy functions cluster
+ The above image visualizes the reinforcement learning feedback loop in games. As the image shows, large parts of the agent consist of neural networks, using deep learning. Why is Deep Learning used now?
 
-Gives three examples, AlphaGo and AlphaZero, CTF and Folding. 
+- Deep Learning allows for end-to-end training
+- No more explicit feature engineering for different tasks
+- Weak priors can be integrated in the architecture of the network (such as in convolutions, recurrence)
+- Recent advances in hardware and data
+  - Bigger computational power (GPUs, TPUs)
+  - New data source available (mobile devices, online services, crowdsourcing)
 
-On limits of deep learning
+### 02 - AlphaGo and AlphaZero
+
+AlphaGo bootstraps from human games in Go by learning a policy network from thousands of games. Once it has weak human level it stars learning from self-play to improve further.
+
+![Abstract visualization of reinforcement learning in games](/assets/images/deepmind_lecture_part_1/e01_02_alpha_go.png)
+
+The policy network makes the complexity of the game managable, you can do rollouts by selecting only promising plays. The value network allows to reduce the depth of rollouts by evaluating the state of the game at an intermediate stage.
+
+![Exhaustive search visualization](/assets/images/deepmind_lecture_part_1/e01_02_exhaustive_search_tree.png)
+
+AlphaGoZero: Learns from first principles, starts with random play and just improves with self-play. Zero refers to zero human domain specific knowledge (in Go)
+
+AlphaZero: Plays any 2-player perfect information game from scratch. It was also tested on Chess and Shogi, which is Japanese chess. Achieves human or superhuman performance on all of them. The way this works is to train a policy and value network, and then play against for a hundred thousand plays. Then a copy of the two networks learns from that generated experience, once the new copy wins 55% of the games against the old version, the data generation process is restarted.
+
+![AlphaZero visualization](/assets/images/deepmind_lecture_part_1/e01_02_alpha_zero.png)
+
+An interesting part of the lecture is that the amount of search an agent does before making a decision in chess. The best humans look at 100s of positions, AlphaZero looks at 10'000s of positions and a state-of-the art Chess engine looks at 10'000'000 of positions. This means the network allow for better data efficiency by selecting only promising plays to explore. AlphaZero beats both, humans and state-of-the-art Chess engines. AlphaZero also rediscovers common human lays in chess, and discards some of them as inefficient.
+
+![Amount of search per decision in Chess, Chess engine vs. AlphaZero vs. Human Grandmaster](/assets/images/deepmind_lecture_part_1/e01_02_amount_of_search_per_decision.png)
+
+Conclusions about AlphaZero:
+
+- Deep Learning allows to narrow down the search space of complex games
+- Self-Play allows for production of large amounts of data which is necessary to train deep networks
+- Self-Play provides a curriculum of steadily improving opponents
+- AlphaZero is able to discover new knowledge and plays in the search space
+
+### 03 - Learning to Play Capture the Flag
+
+Capture the flag is a multi-agent game which is based on Quake III arena. Agents play in teams of two against each other and need to coordinate. The maps are procedurally generated, in indoor and outdoor style. A team can only score if their flag has not been captured by another team, this leads to a complex reward situation.
+
+![Capture the flag environment, four agents per map](/assets/images/deepmind_lecture_part_1/e01_03_capture_the_flag_overview.png)
+
+Here an entire population of agents are trained, a game is played by bringing multiple agents together, each will only have access to his individual experience. There is no global information as in the previous cases. The population of agents serve two purposes:
+
+- Diverse teammates and opponents, naive self-play leads to a collapse
+- Provides meta-optimization of agents, model selection, hyper-parameter adaption and internal reward evolution
+
+![Capture the flag training procedure](/assets/images/deepmind_lecture_part_1/e01_03_capture_the_flag_training_procedure.png)
+
+Achieves superhuman performance and easily beats baseline agents. The agent was evaluated in a tournament playing against and with humans. Humans can only beat them when their teammate is an agent. Surprisingly did humans rate the FTW agent as the most collaborative. 
+
+![Capture the flag training procedure](/assets/images/deepmind_lecture_part_1/e01_03_performance.png)
+
+Agents develop behavior also found in humans, such as teammate following and base camping. Different situations of CTF can be visualized in the neural network by applying t-SNE to the activations.
+
+![Visualization of the state of NN and CTF situations](/assets/images/deepmind_lecture_part_1/e01_03_clustering_neural_network_activity.png)
+
+Conclusion:
+
+- This shows that Deep Reinforcement learning can generalize to complex multi-player video games
+- Populations of agents enable optimization and generalization
+- Allows for understanding of agent behavior
+
+### 04 - Beyond Games: AlphaFold
+
+Protains are fundamental building blocks of life. They are the target of many drugs and are like little biomechanic machines. The shape of proteins allows to make deductions about their functions. The goal is to take as input a amino acid sequence and predict a 3D structure, which is a set of atom coordinates.
+
+![From amino acid sequence to 3D structure](/assets/images/deepmind_lecture_part_1/e01_04_sequence_to_3D.png)
+
+The problem is parametrized as follows:
+
+- Predict the coordinates of every atom, especially the ones of the backbone
+- Torsion angles $$(\Psi, \Phi)$$ for each residue are a complete parametrization of the backbone geometry
+- There are $$2N$$ degrees of freedom for chains of length $$N$$
+
+![Capture the flag training procedure](/assets/images/deepmind_lecture_part_1/e01_04_prediction_parameters.png)
+
+Levinthal's Paradox says that despite the astronomical number of possible configurations, proteins fold reliable and quickly to their native state in nature. Finding the structure usually takes 4 years of human work, despite this there is a database of 150'000 entries available. This is not as much as in other domains (such as speech), but allows for Deep Learning to be applied.
+
+The model takes a protein sequence as input to a neural network consisting of 220 deep dilated convolutional residual blocks, and predicts a map of pairwise distances plus angles. Then gradient descent is run on the resulting score function to obtain a configuration estimate.
+
+![Structure of AlphaFold](/assets/images/deepmind_lecture_part_1/e01_04_alpha_fold_structure.png)
+
+The whole system was evaluated on the CASP13 competition against other world class researcher on unseen data and achieved first place.
+
+Conclusion:
+
+- Deep Learning based distance prediction gives more accurate predictions of contact between residues ...
+- ... but accuracy is still limited and only the backbone can be predicted. The side chains still rely on an external tool
+- Work builds on decades of work by other researchers
+- Deep Learning can deliver solutions to science and biology
+
+### 05 - Overview of Lecture Series
+
+This part gives a quick overview of what will be discussed in the lecture series
+
+1. Introduction to Machine Learning and AI
+2. Neural Networks Foundation
+3. Convolutional Neural Networks for Image Recognition
+4. Vision beyond ImageNet - Advanced models for Computer Vision
+5. Optimization for Machine Learning
+6. Sequences and Recurrent Networks
+7. Deep Learning for Natural Language Processing
+8. Attention and Memory in Deep Learning
+9. Generative Latent Variable Models and Variational Inference
+10. Frontiers in Deep Learning: Unsupervised Representation Learning
+11. Generative Adversarial Networks
+12. Responsible innovation
+
+### Question session
+
+What are the limits of Deep Learning:
 
 - Lack of data efficiency
 - Energy consumption of by computational systems
 - Common sense, adapt quickly to new situations in environment
 
-Autonomous driving AI complete? Need maybe physical simulations and multi-agent systems.
+Is autonomous driving AI complete?
 
-Follow up: T-SNE, Netflix Documentary about AlphaGo, papers
+- Probably needs more than RL simulations only. Need maybe physical simulations and multi-agent systems.
+
+### My Highlights: 
+
+- Definition of intelligence
+- T-SNE view of how policy functions cluster
 
 ## Episode 2 - Neural Networks Foundations
 
-Overview: Grow in Compute for parallel computation (matrix multiplication), data and scale of models with data. Deep Learning as blocks which can be arranged, not easily defined. Or rather Deep Learning foundations
+### 01 - Overview
 
-One neuron is a projection on one line (see slide). Affine transformation. Optimized matrix multiplication goes down from $$n^2$$ to 2.7???. Linear means affine, parameters are weigths, neurons are units. Gradient magnitude as amount of information that flows through model. Cross-Entropy is also called negative log likelihood or logistic loss. Losses are additive with respect to samples. Softmax does not scale well with number of classes. XOR problem, can not separate with one line. Playground.tenserflow.org for examples of how to make problems linearly separable, play around (great for building intuition). Constructive vs. existential proof in mathematics (Universal Approximation Theorem). Three bumps by 6 neurons to make an approximation. ReLU needs careful initialization due to dead neurons (debug metric). Neural networks as computational graphs. Gradient and Jacobian. Linear Layer as computational graph, forward and backward pass. Backwards pass of max in computational graph. If weights are small, functions can not be too complex. Blogpost of andrey karpathy on diagnosing and debugging. Always over-fit first. Monitor norms of weights? Add shape asserts, because of broadcasting in modern framework. 
+Deep Learning has been made possible by advances in parallel computiation (important for matrix multiplication) and larger data sets. In general Deep Learning is not easy to define, an attempt from Yann LeCun:
+
+#### "DL is constructing networks of parameterized functional modules & training them from examples using gradient-based optimization."
+
+We can see Deep Learning as a collection of differentiable blocks which can be arranged to transform data to a specific target. 
+
+![Seeing Deep Learning as a collection of differentiable blocks](/assets/images/deepmind_lecture_part_1/e02_01_deep_learning_puzzle.png)
+
+### 02 - Neural Networks
+
+An artificial neuron is losely inspired by real neurons in human brains. However the goal of an artificial neuron is to reflect some neurophysiological  observation, not to reproduce their dynamics. One neuron is described by the equation
+
+$$\sum_{i=1}^d w_i x_i + b \qquad d \in \mathbb{N}, w_i, x_i, b \in \mathbb{R}$$
+
+and can be seen as a projection on a line.
+
+![Artificial neuron visualized](/assets/images/deepmind_lecture_part_1/e02_02_artificial_neuron.png)
+
+A linear layer is a collection of artificial neurons. In machine learning linear really means affine. We also call neurons in a layer units. Parameters are often called weights. These layers can be efficiently parallelized and are easy to compose.
+
+![Linear layer visualized](/assets/images/deepmind_lecture_part_1/e02_02_linear_layer.png)
+
+In order to make them non-linear, they are combined with point wise sigmoid activation functions. We call them non-linearities, these are applied point-wise and produce probability estimates.
+
+![Sigmoid activations visualized](/assets/images/deepmind_lecture_part_1/e02_02_sigmoid_activation_function.png)
+
+As mentioned in the puzzle above, we also need a loss function. It is often called negative log likelihood or logistic loss.
+
+![Cross-entropy loss visualized](/assets/images/deepmind_lecture_part_1/e02_02_cross_entropy_loss.png)
+
+These components allow us to create a simple but numerically unstable neural classifier, because the gradient can vanish through some of these layers. We can see the gradient magnitude as amount of information that flows through a model.
+
+![Cross-entropy loss visualized](/assets/images/deepmind_lecture_part_1/e02_02_neural_classifier.png)
+
+The above model is equivalent to a logistic regression. It is also additive over samples, which allows for efficient learning .We can generalize the sigmoid to $$k$$ classes, this is called a softmax:
+
+$$f_{sm}(\mathbf{x}) = \frac{e^{\mathbf{x}}}{\sum^k_{j=1} e^{\mathbf{x}_j}} \quad \mathbf{x} \in \mathbb{R}^k$$
+
+This has the additional advantage that it is numerically stable when used in conjunction with a Cross-Entropy loss. This is equivalent to a multinomial logistic regression model. But softmax does not scale well with number of classes (if you have thousands of classes).
+
+![Softmax combined with cross-entropy](/assets/images/deepmind_lecture_part_1/e02_02_softmax_cross_entropy.png)
+
+Surprisingly often high dimensional spaces are easy to shatter with hyperplanes. For some time this was used in natural language processing under the name of MaxEnt (Maximum Entropy Classifier). However it can not solve some seemingly simple tasks as separating these two classes (or can you draw a line to separate them?)
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_xor_limitation.png)
+
+To solve the above problem we need a hidden layer which projects the four group of points into a space where they are linearly separable (top left of the image)
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_xor_hidden_layer_transform.png)
+
+The hidden layer allows us to bend and twist the input space and finally apply a linear model to do the classification. We can achieve this with just two hidden neurons. To play around with different problems and develop some intuition go to [playground.tensorflow.org](http://playground.tensorflow.org/#activation=tanh&batchSize=10&dataset=circle&regDataset=reg-plane&learningRate=0.03&regularizationRate=0&noise=0&networkShape=4,2&seed=0.30401&showTestData=false&discretize=false&percTrainData=50&x=true&y=true&xTimesY=false&xSquared=false&ySquared=false&cosX=false&sinX=false&cosY=false&sinY=false&collectStats=false&problem=classification&initZero=false&hideText=false). 
+
+One of the most important theoretical results for neural networks it the **Universal Approximation Theorem**:
+
+#### For any continuous function from a hypercube $$[0,1]^d$$ to real numbers, and every positive epsilon, there exists a **sigmoid** based, 1-hidden layer neural  network that obtains at most epsilon error in functional space.
+
+This means a big enough network can approximate, but not necessarily directly represent any smooth function. Neural networks are very expressive! This theorem can be slightly generalized to:
+
+#### For any continuous function from a hypercube $$[0,1]^d$$ to real numbers, **non-constant, bounded and continuous activation function f**, and every positive epsilon, there exists a 1-hidden layer neural network using **f** that obtains at most epsilon error in functional space.
+
+However these theorems tell us nothing about how to learn or how fast we can learn those functions. The proofs are just existential, they don't tell us how to build a network that has those properties. Another problem is that the size of the networks grows exponentially.
+
+### 03 - Learning
+
+
+
+### 04 - Pieces of the Puzzle
+
+### 05 - Practical Issues
+
+### 06 - Bonus: Multiplicative Interactions
+
+
+
+Constructive vs. existential proof in mathematics (Universal Approximation Theorem). Three bumps by 6 neurons to make an approximation. ReLU needs careful initialization due to dead neurons (debug metric). Neural networks as computational graphs. Gradient and Jacobian. Linear Layer as computational graph, forward and backward pass. Backwards pass of max in computational graph. If weights are small, functions can not be too complex. Blogpost of andrey karpathy on diagnosing and debugging. Always over-fit first. Monitor norms of weights? Add shape asserts, because of broadcasting in modern framework. 
 
 Highlights: Highly dimensional spaces are surprisingly easy to shatter with hyperplanes. XOR example with two layers, how it makes the problem linearly separable (sigmoid bends or squishes). Universal Approximation Theorem, size can grow exponentially (universal approx. theorem does not hold for ReLU???), difference between approximation and representation (we can approximate everything, but possibly at cost of huge number of parameters). Number of linear regions grows exponentially with dept, and polynomially with width (go deeper than wider!), ReLU can be seen as folding space on top of each other (read paper). Double descent, over-parameterization does not make things worse anymore (over-fitting), mapped onto Gaussian processes, model complexity is not as simple as number of parameters, holds for deep big models. MLPs can not represent multiplication, only approximate it, multiplicative units in network??
 
