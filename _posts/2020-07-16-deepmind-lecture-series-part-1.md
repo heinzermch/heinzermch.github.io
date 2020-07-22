@@ -234,31 +234,138 @@ This means a big enough network can approximate, but not necessarily directly re
 
 However these theorems tell us nothing about how to learn or how fast we can learn those functions. The proofs are just existential, they don't tell us how to build a network that has those properties. Another problem is that the size of the networks grows exponentially.
 
+*<u>Remark</u>: Considering that this theorem is for bounded activation functions, how does ReLU fit into the universal approximation theorem? It does not apply to that case. Most of the modern neural network use ReLU as non-linearity.*
+
+What is the intuition behind the Universal Approximation Theorem? We want to approximate a function in $$[0,1]$$ using sigmoid functions, then we can combine two of them, red and blue to get a bump (orange):
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_two_sigmoid_function_approximation.png)
+
+The more neurons we add, the more of these bumps we can get. The closer we can approximate the function. In the example below we use six neurons to approximate the function and can get already close. Intuitively it should be clear that the more neurons we use, the closer we can approximate the target function (grey) with the sum of our bumps (orange).
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_three_times_two_sigmoid_function_approximation.png)
+
+The theorem confirms the intuition that we can get arbitrarily close to any target function by simply using more of these bumps.
+
+In practice we often don't use sigmoid but rectified linear units (ReLU) as activation functions. It has the advantage that the derivative does not vanish in the right side. However it can lead to 'dead' neurons which only output zero, due to this property careful initialization is necessary. Even though the function is not differentiable at zero, this is not an issue in practice.
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_relu.png)
+
+Our overall goal is always to make the problem linearly separable in the last layer. In general is it more beneficial to create a wider than a deeper network? The question was answered in this [paper](https://arxiv.org/abs/1402.1869), expressing symmetries and regularities is much easier with a deep than a wide network. The number of linear regions grows exponentially with depth and polynomially with width.
+
+![XOR problem for two classes](/assets/images/deepmind_lecture_part_1/e02_02_depth_as_folding.png)
+
+It is helpful to see neural networks as computational graphs on which we perform operations. Light blue nodes are data, input and target. Red blocks are parameters or weights which influence the operation in dark blue nodes. Note that not every operation node has parameters, this is only the case for linear layers in this example. Generally we pass the data from left to right (forward pass) and the gradients from right to left (backward pass).
+
+![Neural network as computational graph](/assets/images/deepmind_lecture_part_1/e02_02_neural_networks_as_computational_graphs.png)
+
+Later levels in the network perform higher level tasks, such as line/corner detection compared to shape/object detection.
+
 ### 03 - Learning
 
+A quick recap on linear algebra (*I would rather say calculus*). The gradient of a function
 
+$$\begin{align}  f &: \mathbb{R}^n \longrightarrow \mathbb{R}  \\ 
+y &= f(\mathbf{x})  \end{align}$$
+
+is
+
+$$ \frac{\partial y}{ \partial \mathbf{x}} = \nabla_{\mathbf{x}} f(\mathbf{x}) = \bigg[\frac{\partial f}{ \partial \mathbf{x}_1}, \dotsc, \frac{\partial f}{ \partial \mathbf{x}_2}\bigg] $$
+
+The Jacobian of a function 
+
+$$\begin{align}  f &:  \mathbb{R}^d \longrightarrow \mathbb{R}^k  \\ 
+\mathbf{y} &= f(\mathbf{x})  \end{align}$$
+
+is
+
+$$\frac{\partial \mathbf{y}}{ \partial \mathbf{x}} = J_{\mathbf{x}} f(\mathbf{x}) = \begin{pmatrix}
+ \frac{\partial f_1}{ \partial \mathbf{x}_1} & \dotsc &  \frac{\partial f_1}{ \partial \mathbf{x}_d} \\
+ \vdots & \ddots & \vdots \\
+ \frac{\partial f_k}{ \partial \mathbf{x}_1} & \dotsc &  \frac{\partial f_k}{ \partial \mathbf{x}_d}  \\
+\end{pmatrix}$$
+
+Gradient descent is then for a sequence of parameters $$\mathbf{\theta_t}, t \in \mathbb{N}$$:
+
+$$ \mathbf{\theta_{t+1}} := \mathbf{\theta_t} - \alpha_t \nabla_{\mathbf{\theta}} L(\mathbf{\theta_t})$$
+
+where $$\alpha_t$$ is the learning rate at time $$t$$. Choosing a correct learning rate is crucial. In the case of non-convex "smooth enough" functions this converges to a local optimum. For each in the computational graph we pass the input in the forward pass and the gradient with respect to the loss function in the backward pass.
+
+![Forward and backward pass for each node](/assets/images/deepmind_lecture_part_1/e02_03_forward_backward_pass.png)
+
+The whole optimization process is built on a few basic principles. The first one is automatic differentiation, for most loss functions and layers we have programs such as TensorFlow or PyTorch which are able to automatically differentiate the common loss functions and layers. No manual gradient calculation is required. There are two fundamental tools which are applied throughout the graph. The first is the chain rule visualized in the image below and written in its basic form on the box on the lower left.
+
+![Chain Rule](/assets/images/deepmind_lecture_part_1/e02_03_chain_rule.png)
+
+The other tool is back-propagation visualized in the graph below. It allows us to calculate the partial derivatives efficiently for each node (linear in the number of nodes). 
+
+![Backpropagation](/assets/images/deepmind_lecture_part_1/e02_03_backprop.png)
+
+A basic example of how the forward and backward pass work for a linear layer is illustrated below. Note that the derivative is taken with respect to the two parameters $$W$$ and $$b$$ as well as the input $$x$$.
+
+![Linear layer backward pass](/assets/images/deepmind_lecture_part_1/e02_03_linear_layer_backward_pass.png)
+
+The same can be done for other parts of the network, for more details check the presentation. Note that for numerical stability the cross-entropy of logits is usually done in a single operation.
+
+*<u>Remark</u>: For more details on the forward and backward pass of these basic building blocks see my [blog post](https://heinzermch.github.io/posts/creating-a-NN-from-scratch-part-1/) on building a neural network from scratch*
 
 ### 04 - Pieces of the Puzzle
 
+Other frequent operations used in neural networks are the max operation, where gradients only flow through the element which is maximal. This is a part of max pooling. No parameters can be learned
+
+![Max as computational graph](/assets/images/deepmind_lecture_part_1/e02_04_max_computational_graph.png)
+
+Another way of choosing which elements to pass forward is to do element wise multiplication such as in an attention layer (*see lecture 8*). Here it is possible to learn the probability distribution (using softmax).
+
+![Conditional execution as computational graph](/assets/images/deepmind_lecture_part_1/e02_04_conditional_execution_computational_graph.png)
+
 ### 05 - Practical Issues
+
+A classical problem in ML is overfitting, our model has too many parameters and learns the training data set too precisely. Hence it will perform poorly on the test set, it does not generalize. There are a couple of techniques which can help mitigate or avoid those cases for neural networks:
+
+![Classical ML overfitting](/assets/images/deepmind_lecture_part_1/e02_05_overfitting_regularization.png)
+
+The above are classical results from statistics and Statistical Learning Theory, however this isn't always true for neural networks. There  are cases where the model initially becomes worse, before it becomes better again when we increase parameters (double descent). These are very [recent](https://arxiv.org/abs/1812.11118) [results](https://openai.com/blog/deep-double-descent/) from 2019. What this tells us is that model complexity is not as simple as the number of parameters they have. Even if bigger models don't necessarily over-fit anymore, they can still benefit from regularization techniques.
+
+![Overfitting in the NN scenario](/assets/images/deepmind_lecture_part_1/e02_05_overfitting_regularization_in_nn.png)
+
+Training, diagnosing and debugging neural networks is not always easy. Often they fail silently, unlike classical programs a bug is not obvious and won't make your program crash instantly. Here are some pointers to verify the correctness:
+
+- Be careful with initialization
+- Always over-fit on a small sample first (*can highly recommend this, the simplest test to see if your basic setup works*)
+- Monitor training loss
+- Monitor weight norms and NaNs (*in my experience a NaN loss or accuracy is the closest you get to an obvious bug*)
+- Add shape asserts (to detect when your NN framework broadcasts a parameter into a different shape than you expect)
+- Start with Adam (optimizer)
+- Change one thing at a time (*Something I can recommend highly from experience, otherwise it is almost impossible to attribute changes in accuracy to changes in code/data. In papers this is called ablation studies*)
+
+More detailed information can be found in Karpathy's [blog post](http://karpathy.github.io/2019/04/25/recipe/).
 
 ### 06 - Bonus: Multiplicative Interactions
 
+What can Multi Layer Perceptrons (MLPs) not do?
 
+$$f(x,y) = \langle x,y \rangle$$
 
-Constructive vs. existential proof in mathematics (Universal Approximation Theorem). Three bumps by 6 neurons to make an approximation. ReLU needs careful initialization due to dead neurons (debug metric). Neural networks as computational graphs. Gradient and Jacobian. Linear Layer as computational graph, forward and backward pass. Backwards pass of max in computational graph. If weights are small, functions can not be too complex. Blogpost of andrey karpathy on diagnosing and debugging. Always over-fit first. Monitor norms of weights? Add shape asserts, because of broadcasting in modern framework. 
+They can not represent multiplication. As the graphs below show, the number of parameters required to approximate multiplicative interaction grows exponentially with the number of input dimension. Being able to approximate something is not the same as being able to represent it. Approximation can be highly inefficient.
 
-Highlights: Highly dimensional spaces are surprisingly easy to shatter with hyperplanes. XOR example with two layers, how it makes the problem linearly separable (sigmoid bends or squishes). Universal Approximation Theorem, size can grow exponentially (universal approx. theorem does not hold for ReLU???), difference between approximation and representation (we can approximate everything, but possibly at cost of huge number of parameters). Number of linear regions grows exponentially with dept, and polynomially with width (go deeper than wider!), ReLU can be seen as folding space on top of each other (read paper). Double descent, over-parameterization does not make things worse anymore (over-fitting), mapped onto Gaussian processes, model complexity is not as simple as number of parameters, holds for deep big models. MLPs can not represent multiplication, only approximate it, multiplicative units in network??
+ ![Multiplicative interactions and a parameters to approximate them](/assets/images/deepmind_lecture_part_1/e02_06_multiplicative_interactions.png)
 
-Do not look for marginally improvements (activations functions), but identify what neural networks can not do and propose a module that can do that.
+ Closing words:
 
-Follow up: 
+#### "If you want to do research in fundamental building blocks of Neural Networks, **do not seek** to marginally improve the way they behave by finding a **new activation function**. Ask yourself what current modules cannot represent or guarantee right now, and propose a module that can."
 
-### Highlights
+*<u>Remark:</u> This is something I can wholeheartedly agree with, too many of todays papers are happy to show an increase in 0.5% in accuracy in some benchmark, by doing a minor tweak. There hasn't been a relevant improvement for practitioners since BatchNorm layers and residual connections.* 
+
+### My Highlights
 
 - Approximation is not the same as representation
+- XOR example with two layers
+- Universal Approximation Theorem
+- ReLu can be seen as folding space on top of each other ([paper](https://arxiv.org/abs/1402.1869))
+- Deep Double Descent and over-parametrization in neural networks
+- MLPs and multiplicative operations ([paper](https://openreview.net/pdf?id=rylnK6VtDH), follow up [read](https://arxiv.org/abs/2006.07360))
 
-## Episode 3 - 
+## Episode 3 - Convolutional Neural Networks for Image Recognition
 
 ### 01 - Background
 
