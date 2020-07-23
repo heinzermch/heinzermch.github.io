@@ -369,69 +369,126 @@ They can not represent multiplication. As the graphs below show, the number of p
 
 ### 01 - Background
 
-Recap from last lecture, building blocks. How to feed an image, its a 2D grid, special topological structure. NN expects vectors of numbers, we can flatten the image into a vector. Problems when shifting the input, it will look very different to a network. Want the network to take into account the grid structure. Two key features:
+What is an image? An image is a 2D grid of pixels, but neural network expects a vector of numbers as an input. So how can we transform it? One way is by flattening the grid to a vector, simply attaching each row at the end of the previous one. One issue with this is that if we shift the input in the original space by some pixels, it will produce a completely different input. The case is illustrated below.
+
+ ![Feeding an image into a network](/assets/images/deepmind_lecture_part_1/e03_01_feeding_images_to_a_neural_network.png)
+
+Moreover we would also want to make the network take into account grid structure. We can summarize this in two key features:
 
 - Locality: nearby pixels are strongly correlated
 - Translation invariance: patterns can occur anywhere in the image
 
-Images have simliar modality, sounds can occur anytime in signal is also translation invariance in time. Textual data, words can occur anytime. Graph structure, molecules can exhibits patterns anywhere
+ ![Locality and translation invariance](/assets/images/deepmind_lecture_part_1/e03_01_locality_and_translation_invariance.png)
 
-How do we take advantage of topological structure
+The above is true for images but also for other modalities, for example sounds can occur anytime in signal. This is translation invariance in time. And in textual data, words can occur anytime. In graph structures, molecules can exhibits patterns anywhere. How can we put these properties into a network and take advantage of topological structure? By using the two following properties
 
-- Weight sharing: use same parameters to detect paterns all over the image
+- Weight sharing: use same parameters to detect same patterns all over the image
 - Hierarchy: low-level features are composed, model can be stacked to detect these
 
-Data drives research, here ImageNet has 1000 classes, but lots of them are dog breeds, approximately 100. History of the ImageNet competition
+ ![Locality and translation invariance](/assets/images/deepmind_lecture_part_1/e03_01_weight_sharing_and_hierarchy.png)
 
 ### 02 - Building Blocks
 
-From fully connected to locally connected using 3x3 receptive field. From locally connected to convolutional by sharing weights. Operation becomes equivariant to translation. Weights are called kernel or filter. Filter operation essentially with learned weights. Multiple feature maps are channels. Variants of the convolution operation:
+What we want to do is going from a fully connected operator below to a locally connected one. Note that the image does not really display a fully connected layer, there are all connections missing which do not occur at the border of the image (keeps the graphic readable).
+
+![Fully connected layer on an image](/assets/images/deepmind_lecture_part_1/e03_02_fully_connected.png)
+
+The example below shows how we force the network to be locally connected and share the same weights over all the image: a 3x3 convolution. The operation becomes equivariant to translation. In the context of neural networks we often call the weigths kernel or filter. This kernel slides over the whole image and produces a feature map. For each pixel in the feature map we call the input which goes into the calculation for that pixel the receptive field.
+
+![Locally connected with weight sharing](/assets/images/deepmind_lecture_part_1/e03_02_locally_connected_weight_sharing.png)
+
+In a real world application, we will always have more than one filter. Each one of them will go over the input and produce a feature map, these feature maps are often called channels.
+
+![Multiple channels](/assets/images/deepmind_lecture_part_1/e03_02_multiple_channels.png)
+
+ Filter operation essentially with learned weights. Multiple feature maps are channels. There are many variants of the convolution operation:
 
 - Valid convolution: no padding, slightly smaller output
+  ![Valid convolution](/assets/images/deepmind_lecture_part_1/e03_02_valid_convolution.png)
 - Full convolution: padding so that only one pixel overlaps in minimum, larger output than input
+  ![Full convolution](/assets/images/deepmind_lecture_part_1/e03_02_full_convolution.png)
 - Same convolution: padding so that output has same size as input, works better for odd kernel size
+  ![Same convolution](/assets/images/deepmind_lecture_part_1/e03_02_same_convolution.png)
 - Strided convolution: step size > 1, makes output resolution by at least 2x smaller
+  ![Strided convolution](/assets/images/deepmind_lecture_part_1/e03_02_strided_convolution.png)
 - Dilated convolution: kernel is spread out, increases receptive field, step size > 1 inside kernel. Can be implemented efficiently
+  ![Dilated convolution](/assets/images/deepmind_lecture_part_1/e03_02_dilated_convolution.png)
 - Depthwise convolution: Normally each input channel is connected to each output channel, here every input channel is connected to only one output channel
+  ![Depthwise convolution](/assets/images/deepmind_lecture_part_1/e03_02_depthwise_convolution.png)
 - Pooling: compute mean or max over small windows
+  ![Pooling operation](/assets/images/deepmind_lecture_part_1/e03_02_pooling.png)
+
+
 
 ### 03 - Convolutional neural networks
 
-Simplified computational graph with convolutions, non-linearity, pooling and fully connected layers
+A basic convolutional neural network has the structure as in the image below. We stack blocks of convolutions, non-linearity and pooling together and repeat them as many times as possible. In the end there are some blocks consisting of fully-connected and non-linearity layers. This structure is typical for networks used for classification. Note that we will not use explicit blocks for weights and loss functions anymore.
+
+![Convnet as graph](/assets/images/deepmind_lecture_part_1/e03_03_conv_net_as_graph_simplified.png)
 
 ### 04 - Going Deeper: case studies
 
-Different kind of nets. Challenges of deep networks, computational complexity and optimisation difficulites. What can help: initialization, sophistiacated optimizers, normalisiation layers, network design.
+Here we are going to see the most important evolutionary steps in neural network for images. They will adress some of the key challenges of deep networks: computational complexity and optimization. Some of the techniques that can help are: initialization, sophisticated optimizers, normalizations layers, network design. Lets start simple with the example from the previous image:
 
-- LeNet-5 (1998): 5 layer, sigmoid
-- AlexNet (2012) : 8 layers, ReLU, start with 11x11 kernel, not every convolution needs to be followed by pooling
-- VGGNet (2014) : up to 19 layers, use same layers to avoid reduction, only uses 3x3 kernels and stack them instead of larger kernels, this also increases receptive fields with fewer parameters and more flexible because extra non-linearity. Use data and not model parallelism, same model on 4 gpus and split data into four. error plateaus at 16 layers, 19 layers was worse
-- GoogLeNet (2014): Branch out and have multiple feature arms in each block (inception module)
-- Idea of batch normalization: reduce sensitivity to initialization, acts as a regularizer, more robust to different learning rates, introduces stochasticity (because mu and sigma have to be estimated for each batch, this can make model more robust. at test time this introduces dependency on other images in batch. Freeze them for test time, can be a source for a lot of bugs), speed up training
-- ResNet (2015): (150 layers deep) introduce residual connections, makes training deeper networks simpler. V2 avoid nonlinearites in residual pathway. Bottleneck block, 1x1 reduces channels, 3x3 on fewer feature maps (fewer parameters), go back with 1x1 to more channels (ResNet-152 is actually cheaper than VGG)
-- DenseNet (2016): connections to all previous layers, not one.
-- Squeeze and excitation networks (2017): features incorporate global context
-- AmoebaNet (2018): Architecture found by neural architecture search, evolutionary algorithm. DAG composed of predefined layers
-- Reduce complexity: 
+- LeNet-5 (1998): Has 5 layer, sigmoid (used for handwritten digit recognition)
+  ![LeNet as computational graph](/assets/images/deepmind_lecture_part_1/e03_04_le_net.png)
+- AlexNet (2012) : Has 8 layers, ReLU, start with a 11x11 kernel, not every convolution needs to be followed by pooling
+  ![AlexNet](/assets/images/deepmind_lecture_part_1/e03_04_alexnet.png)
+
+- VGGNet (2014) : up to 19 layers, use same layers to avoid reduction. It only uses 3x3 kernels and stacks them instead of larger kernels. It uses same padding to avoid resolution reduction.
+  ![VGGNet](/assets/images/deepmind_lecture_part_1/e03_04_vggnet.png)
+
+  Stacking increases the receptive fields with fewer parameters and more flexibility.
+  ![AlexNet](/assets/images/deepmind_lecture_part_1/e03_04_stacking_convolutions.png)
+
+  Interestingly the error plateaus at 16 layers, training a network with 19 layers was worse. This is because these kind of networks are hard to optimize. There are two main innovations which made deeper networks more trainable.
+
+- Batch Normalization: Normalize each input pixel over the batch dimension by subtracting the mean $$\mu$$ and dividing by the standard deviation $$\sigma$$. Add and multiply the result with two lernable parameters $$\gamma$$ and $$\beta$$.
+  ![BatchNormalization](/assets/images/deepmind_lecture_part_1/e03_04_batch_normalization.png)
+  This simple idea reduces sensitivity to initialization and acts as a regularizer. It makes networks more robust to different learning rates and introduces stochasticity (because $$\mu$$ and $$\sigma$$ have to be estimated for each batch, this can also help make a model more robust). However at test time this introduces dependency on other images in batch. What we generally do is freezing those values for testing time, this can be a source for a lot of bugs.
+
+- Residual connections, introduced in ResNet (2015): The ResNet can be up to 150 layers deep. It can do that because it introduces residual connections, which make makes training deeper networks simpler by letting the network 'choose' which layers it needs. In the simplest case the network can simply be a identity function.
+
+  ![Residual Connections](/assets/images/deepmind_lecture_part_1/e03_04_residual_connection.png)
+  Generally the first convolution acts as a bottleneck block, applying a 1x1 convolution to reduce channels. Then a 3x3 convolution can be applied on fewer channels, allowing for lower computational costs and fewer parameters. Finally a last 1x1 convolution restores the original number of channels. Interestingly this setup allows the ResNet-152 to be computationally cheaper than than VGG network. The version 2 avoids nonlinearities in residual pathways. 
+  ![Residual Connections version 2](/assets/images/deepmind_lecture_part_1/e03_04_residual_connection2.png)
+
+- DenseNet (2016): connections to all previous layers, not only one
+  ![DenseNet](/assets/images/deepmind_lecture_part_1/e03_04_dense_net.png)
+
+- AmoebaNet (2018): One of the first architectures not designed by a man but but by an algorithm. This is called neural architecture search, here an evolutionary search algorithm was used. The network is basically an acyclig graph composed of predefined layers.
+  ![Amoebanet](/assets/images/deepmind_lecture_part_1/e03_04_amobaenet.png)
+
+- Other ways to reduce complexity of networks: 
   - Depthwise convolutions, 
   - separable convolutions, 
   - inverted bottlenecks (MobileNetV2, MNasNet, EfficientNet)
 
 ### 05 - Advanced topics
 
-Data augmentation, makes them robust against other transformations: rotation, scaling, shearing, warping.
+So far we have seen networks being robust to tranlsation. Using data augmentation, we can make them robust against other transformations: rotation, scaling, shearing, warping and many more.
 
-Visualize what convnet learns, maximize one activation using gradient ascent. Even with respect to a specific output neuron (class). Nice article on distill.pub, Other topics: pre-training, fine-tuning. Group equivaraint convnets: invariance to e.g. rotation and scale. Recurrence and attention
+![Data Augmentation](/assets/images/deepmind_lecture_part_1/e03_05_data_augmentation.png)
+
+We can visualize what convolutional network learns, by maximizing one activation using gradient ascent. Even with respect to a specific output neuron (class). 
+
+![Visualizing layers](/assets/images/deepmind_lecture_part_1/e03_05_visualizing_layers.png)
+
+For more details and explanations there is read the article on [distill.pub](https://distill.pub/2017/feature-visualization/), Other topics: 
+
+- pre-training and fine-tuning
+- Group equivaraint convnets: invariance to e.g. rotation and scale
+- Recurrence and attention (*these are discussed in later lectures*)
 
 ### 06 - Beyond image recognition
 
-Other tasks: Object detection, semantic segmentation, instance segmentation. Generative models: GANs, Variational autoencoder, autoregressive models (PixelCNN). Representation learning, self-supervised learning. Audio, video, text, graphs.
+Other tasks beyond classification are: Object detection (top right), semantic segmentation (bottom left), instance segmentation (bottom right). We will see more of them in future lectures.
 
-Prioer knowledge is not obsolete: it is merely incorporated at a higher level of abstraction
+![Beyond visual recogntion or classification](/assets/images/deepmind_lecture_part_1/e03_06_visual_tasks_beyong_recognition.png)
 
-### Highlights
+### My Highlights
 
-- BN introduces stochasistiy (see above)
+- BN introduces stochasticity
 
 ## Episode 4 - Advanced models for Computer Vision
 
