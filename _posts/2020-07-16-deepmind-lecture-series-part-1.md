@@ -633,41 +633,64 @@ Base case: use semantic segmentation video and apply it frame wise (but don't us
 
 3D convolutions are non-causal, because you take into account frames from the future (times $$t-1, t, t+1$$), which is fine for off-line processing, but when applying it in real time we have to use masked 3D convolutions.
 
-Can do action recognition, video as input, targets are a an action label which is one-hot encoded.
+Can do action recognition, use video as input, target is an action label which is one-hot encoded.
 
 **Case study: SlowFast**
 
-Two branch model, high frame right and low frame rate processing. Inspiration from human visual system, which also has two stream visual system. Take more features from lower frame rate stream and less features from high frame rate stream. Inution is high level features, abstract information for low frame rate, the other branch takes high frequency or tracking changes.
+SlowFast is a two branch model which takes inspiration from the human visual system, which has also two streams:
 
-Transfer lerning can be used by inflating 2D image filter to 3D filters by replicating along time dimension.
+- Hight frame rate branch: Less features, tracks high frequency changes.
+- Low frame rate branch: More features, abstract information stays the same over longer time frame.
 
-#### Challenges in video processing
+![3D convolutions visualized](/assets/images/deepmind_lecture_part_1/e04_02_slow_fast.png)
 
-Difficult to obtain labels, large memory requirements, high latency, high energy consumption. Basically we need too much compute for it to be broadly applicable. Ongoing area of research of how to improve that by using parallelism and exploit redundancies in the visual data. One idea is to train a model to blink, (humans do it more often than necessary to clean the eye to reduce cognitive load)
+Transfer learning can be used by inflating 2D image filters to 3D filters by replicating them along the time dimension.
+
+![3D convolutions visualized](/assets/images/deepmind_lecture_part_1/e04_02_transfer_learning_video.png)
+
+#### **Challenges in video processing**
+
+It is difficult to obtain labels, models have large memory requirements, high latency, and high energy consumption. Basically we need too much compute for it to be broadly applicable. Ongoing area of research of how to improve that by using parallelism and exploit redundancies in the visual data. One idea is to train a model to blink, (humans do it more often than necessary to clean the eye to reduce cognitive load).
 
 ### 03 - ~~Supervised~~ image classification - Beyond strong supervision
 
-Labeling is tedious and a research topic on itself. Humans can only label keyframes and methods will propagate labels.
+Labeling is tedious and a research topic on itself. Humans can only label keyframes and methods will propagate labels. Example: PolygonRNN.
 
-Self-Supervision - metric learning
+#### **Self-Supervision - Metric Learning**
 
-Learn to predict distances between inputs in an embedding to give similarity measure between data. Create clusters with same person, for unseen data use nearest neighbor. 
+Standard losses such as cross-entropy and mean square error learn a mapping between input and output. Metric learning leanrs to predict distances between inputs in an embedding to give similarity measure between data. Create clusters with same person, for unseen data use nearest neighbor. 
 
-**Contrastive loss**
+![Metric learning, faces example](/assets/images/deepmind_lecture_part_1/e04_03_metric_learning_faces.png)
 
-$$l(r_0, r_1, y)$$  label is 1 if same person or 0 otherwise
+Used for learning self-supervised representations, information retrieval and low-shot face recognition.
+
+**Contrastive loss** 
+
+Also called margn loss, data is triplets $$l(r_0, r_1, y)$$ where $$y=1$$ if $$r_0$$ and $$r_1$$ are the same person and $$y=0$$ otherwise. The loss function is then
+
+$$l(r_0, r_1, y) = y d(r_0, r_1)^2 + (1-y)\big(\max(0, m-d(r_0, r_1))\big)^2$$
+
+ where $$ d(\cdot, \cdot)$$  is the Euclidean distance. We use the margin $$m$$ to cap the maximal distance, however it is hard to choose a value for $$m$$. All classes will be clustered in a ball of radius $$m$$, which can be unstable.
 
 Use margin to cap the maximal distance. See the comparison with euclidean distance. But it is hard to choose $$m$$, the margin. All classes will be clustered in a ball with radius $$m$$, which can be unstable.
 
-**triplet loss**
+![Contrastive loss visualization](/assets/images/deepmind_lecture_part_1/e04_03_contrastive_loss.png)
 
-Better than contrastive loss, relative distance are more meaninful than a fixed margin. $$(r_a, r_p, r_n)$$, attract and reject. Need hard negative mining to select informative triplets.
+**Triplet loss**
 
-#### State-of-the-art
+Use triplets $$(r_a, r_p, r_n)$$ where $$(r_a, r_p)$$ are similar and $$(r_a, r_n)$$ are dissimilar ($$p$$ for positive and $$n$$ for negative example). The loss function is then:
 
-Same data, but different augmentations. Apply many different augmentations. Achieves comparable to supervised results (with more parameters).
+$$l(r_a, r_p, r_n) = \max(0, m+d(r_a, r_p)^2 - d(r_a, r_n)^2)$$
 
+This works better than the contrastive loss because relative distances are more meaningful than a fixed margin. However one needs hard negative mining to select [informative triplets for training](https://arxiv.org/abs/1706.07567).
 
+![Triplet loss visualization](/assets/images/deepmind_lecture_part_1/e04_03_triplet_loss.png)
+
+#### **State-of-the-art**
+
+The current [state of the art](https://arxiv.org/abs/2002.05709) uses the same data, but different augmentations. Especially compositions of data augmentations are important, results are comparable to a supervised Resnet-50 (although with more parameters).
+
+![Augmentations for representation learning](/assets/images/deepmind_lecture_part_1/e04_03_sota_representation_learning.png)
 
 ### 04 - Open Questions
 
@@ -675,7 +698,7 @@ Is vision solved? What does it mean to solve vision? Need the right benchmarks
 
 How to scale systems up? Need a system that can do all the tasks at once, more common sense. Different kind of hardware.
 
-What are good visiual representations for action? Keypoints could help
+What are good visual representations for action? Keypoints could help.
 
 ### Conclusion
 
