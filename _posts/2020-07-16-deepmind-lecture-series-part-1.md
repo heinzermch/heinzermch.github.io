@@ -488,7 +488,7 @@ Other tasks beyond classification are: Object detection (top right), semantic se
 
 ### My Highlights
 
-- BN introduces stochasticity
+- BatchNorm introduces stochasticity
 
 ## Episode 4 - Advanced models for Computer Vision
 
@@ -496,64 +496,142 @@ Holy grail: Human level scene understanding
 
 ### 01 - Supervised image ~~classification~~ - Tasks beyond classification
 
-#### Task 1 - Object Detection
+#### **Task 1 - Object Detection**
 
-Output is class label, one hot encoded, and a bounding box with (x_c, y_c, h, w) for every object in the scene. Data is not ordered, do regression on coordinates. Generally minimize quadratic loss for regression task $$l(x,y) = \| x-y\|^2_2$$.
+![Object Detection](/assets/images/deepmind_lecture_part_1/e04_01_object_detection.png)
 
-How to deal with multiple targets? Redefine problem, first classification and then regression by discretising the output values in one hot label. Case studies:
+Input are again images, the output is class label, which is one hot encoded, and a bounding box with $$(x_c, y_c, h, w)$$ for every object in the scene. Data is not ordered, do regression on coordinates. Generally minimize quadratic loss for regression task $$l(x,y) = \| x-y\|^2_2$$.
+
+![Bounding box prediction](/assets/images/deepmind_lecture_part_1/e04_01_bounding_box_prediction.png)
+
+How to deal with multiple targets? Redefine problem, first do classification and then regression by discretising the output values in one hot label. 
+
+![classification then regression](/assets/images/deepmind_lecture_part_1/e04_01_classification_to_regression.png)
+
+Case studies:
 
 **Faster R-CNN, two-stage detector**
 
-Discretise bbox space, anchor point for (x_c, y_c), scales and ratios for (h,w). n candidates per anchor, predict objectness score for each box, sort and keep top K.  Good accuracy at 5fps. Non-differentiable operations in there, can not backprop gradient w.r.t. bounding box because we fix them in advance (see spatial transformer Networks for differential operation)?? Train system in two parts, objectiveness labels for lower part. Afterwards train second part on pre-trained network. That's why it is called a two-stage detector
+When we redefine the problem we need to set up anchor points over the image, these are centers of candidate bounding boxes and correspond to the $$(x_c, y_c, h, w)$$ part of the problem.
+
+![Anchor points](/assets/images/deepmind_lecture_part_1/e04_01_anchor_points.png)
+
+For each of these anchor points we add multiple candidate bounding boxes. They have different scales and ratios for $$(h, w)$$. For each combination of anchor point and bounding box an objectness score will be predicted. In the end they will be sorted and the top K will be kept.
+
+![Candidate bounding boxes](/assets/images/deepmind_lecture_part_1/e04_01_candidate_boxes_per_anchor_points.png)
+
+These top K predictions are then passed on through another small MLP which will refine them further by performing regression. This is a so called two-stage detector as a non-differentiable step is involved. This means we have to train the system in two parts, one which predicts objectness and and the second which performs the regression on the result of the first one. This system achieves good accuracy at a speed of approximately 5 frames per second. There exist versions which involve only differential operations, as for example in [Spatial Transformer Networks](https://arxiv.org/abs/1506.02025). 
+
+![Two stage detector](/assets/images/deepmind_lecture_part_1/e04_01_region_proposal_network.png)
 
 **RetinaNet - one-stage detector**
 
-Feature pyramid network. 4 is four coordinates of bounding boxes, K is number of classes, A is the number of anchors, 4A is for coordinates of anchor boxes. Can not train straight away, because too many easy negatives. The accumulated loss of many easy examples overwhelms the loss of rare useful examples. Generally one-stage detector employ hard negative mining (in depth description), but RetinaNet uses Focal Loss. Has good accuracy at 8fps. New state of the art for object detection.
+One way of solving the two stage problem is to predict classes and coordinates of bounding boxes straight away. The RetinaNet architecture uses a feature pyramid network to combine semantic with spatial information for more accurate predictions. A basic ResNet architecture extracts features which are then upsampled back to a higher resolution and enriched with spatial information from earlier stages of the network using skip connections. For each level of the pyramid layer K classes and A anchor boxes are predicted. A parallel network will predict four regression coordinates for each anchor box.
 
-#### Task 2 - Semantic Segmentation
+![RetinaNet architecture](/assets/images/deepmind_lecture_part_1/e04_01_retina_net_architecture.png)
 
-Assign a class label to every pixel. Problem: how to generate an output at the same resolution as input. Previous examples all have sparse output, this one needs dense output. Pooling creates larger receptive field, but we lose spatial information, hence we need a reverse operation. For example unpooling. Other upsampling methods, deconvolutions
+However this construction will not train out of the box with a standard loss such as cross-entropy. The problem is the large class imbalance, out of thousands of bounding boxes almost all of them will be background. Even if they are classified with high confidence, their sheer number will overwhelm the signal generated by the rare useful examples. Even if we correctly assign a high probability (i.e. > 0.6) to the background class, the loss value will still be significantly larger than zero.
+
+![CE loss overwhelming simple examples](/assets/images/deepmind_lecture_part_1/e04_01_cross_entropy_easy_samples.png)
+
+ Faster R-CNN pruned most of these easy negatives in the first stage during the sorting. One-stage detectors solved the problem by employing [hard negative mining]((https://www.semanticscholar.org/paper/Learning-and-example-selection-for-object-and-Sung/f3317b98195fe0be4acf7b450f015c1abca13ab9)) procedure:
+
+1. Get set of positive examples
+2. Get a random subset of negative examples (as the full set of negatives is too big)
+3. Train detector
+4. Test on unseen images
+5. Identify false positive examples (hard negatives) and add them to the training set
+6. Repeat from step 3
+
+However one of the main contributions of RetinaNet was the introduction of focal-loss:
+
+$$l_{CE}(p_t) = -(1-p_t)^{\gamma}\log(p_t)$$
+
+Where $$\gamma$$ is a hyperparameter, $$\gamma=0$$ corresponds to a classical cross-entropy loss. The introduction of this additional factor of $$(1-p_t)^{\gamma}$$ reduces the loss of high confidence examples enough to make training stable without additional procedures such as hard negative mining.
+
+![Focal loss for different values](/assets/images/deepmind_lecture_part_1/e04_01_focal_loss.png)
+
+This development lead to new state of the art results at 8 frames per second.
+
+#### **Task 2 - Semantic Segmentation**
+
+Semantic Segmentation is the task of assigning each pixel to a class. The problem here is to generate an output at the same resolution as the input. All the examples we have seen so far have sparse output.
+
+![Semantic segmentation](/assets/images/deepmind_lecture_part_1/e04_01_semantic_segmentation.png)
+
+The spatial resolution loss is mostly caused by the pooling layers, which create a larger receptive field, but we lose spatial information, hence we need a reverse operation. There are multiple operations which do 'unpooling' operations: unpooling, upsampling, deconvolutions.
+
+![Unpooling operation](/assets/images/deepmind_lecture_part_1/e04_01_unpooling.png)
 
 **U-Net**
 
-Encoder-Decoder model, skip connections to preserve high frequency details. Simliar to ResNet classifier, makes backpropagation of gradients easier. We train it with pixel-wise cross entropy loss
+The U-Net architecture follows an encoder-decoder model, with skip connections to preserve high frequency details. A pixel-wise cross-entropy loss is applied to the output.
 
-Connection between RetinaNet and U-Net, same U shape.
+![U-Net](/assets/images/deepmind_lecture_part_1/e04_01_unet.png)
 
-#### Task 3 - Instance Segmentation
+The skip connections are similar to the residual blocks in the ResNet architecture, they help back-propagating the gradients, and make the network easier to optimize. The architecture is also closely related to what we saw the previously in RetinaNet, where the architecture was described as feature pyramid architecture, they both follow an U shape.
 
-Combine object detection and semantic segmentation. Instance segmentation allows you to separate overlapping classes
+#### **Task 3 - Instance Segmentation**
 
-#### Metrics and benchmarks
+If we combine object detection with semantic segmentation, then we get instance segmentation. It allows us to separate overlapping classes, such as multiple sheep in the same image below. The general setup for instance segementation is very similar to object detection, individual objects are predicted with a bounding box, but then an additional semantic segmentation head is applied to get more precise contours. The model generally used for instance segmentation is very similar to Faster R-CNN and is called [Mask R-CNN](https://arxiv.org/abs/1703.06870v3).
 
-Classification was easy: Accuracy as percentage of predictions
+![Instance segmentation](/assets/images/deepmind_lecture_part_1/e04_01_instance_segmentation.png)
 
-Object detection and segmentation: Intersection over Union (non-differentiable, so it's only for evaluation). Pixel wise accuracy would be foolish to use. Not recommended in general to use different measures between training and testing. (IoU not differentiable because of max operations)
+#### **Metrics and benchmarks**
 
-Benchmarks, cityscapes for semantic segmentation and COCO
+Classification was easy: Accuracy as percentage of predictions. Sometimes we also use metrics which count a prediction as correct when it is in the top-5.
 
-#### Tricks of the trade
+Object detection and segmentation: Intersection over Union (non-differentiable, so it's only for evaluation). 
 
-Transfer learning. Nice technical definition, reuse knowledge learnt by $$f_S$$ in $$f_T$$. Intuition is features are shared across tasks and dataset. Don't start from scratch all the time. Reuse knowledge across tasks or across data.
+![Intersection over union](/assets/images/deepmind_lecture_part_1/e04_01_iou.png)
 
-- Transfer learning across different tasks. Mostly remove the last layers and add new layers to adapt to the new task. See Taskonomy paper, for an overview of different tasks and how they are related.
-- Transfer learning across different domains. Train in simulation, use tricks to adapt to target domain (for example domain randomization which is data augmentation and hard negative mining to identify the most useful augmentations)
+Pixel wise accuracy would be foolish to use. Not recommended in general to use different measures between training and testing. (IoU not differentiable because of max operations)
+
+*<u>Remark</u>: Here some more details would have been nice. While for semantic segmentation, IoU or rather mIoU (mean Intersection over Union) is frequently used, in object detection mAP (mean average precision) is more common. While it is at it is also based on IoU, it adds another layer of complexity on top.*
+
+Some common benchmark sets used to evaluate those tasks: cityscapes for semantic segmentation and COCO for instance segmentation.
+
+#### **Tricks of the trade**
+
+Transfer learning. Reuse knowledge learned on one task on another one. Formally: Let
+
+ $$\mathcal{D} = \lbrace \mathcal{X}, P(X) \rbrace, X = \lbrace x_1, \dotsc, x_n \rbrace \in \mathcal{X}$$
+
+ be a domain and 
+
+$$\mathcal{T} = \lbrace \mathcal{Y}, f( \cdot ) \rbrace, f(x_i) = y_i, y_i \in \mathcal{Y}$$
+
+ a task defined on this domain. Given a source domain task $$ \begin{pmatrix} \mathcal{X}_S \\  \mathcal{T}_S \end{pmatrix}$$ and a target domain task $$ \begin{pmatrix} \mathcal{X}_T \\  \mathcal{T}_T \end{pmatrix}$$, re-use what was learned by $$f_S :  \mathcal{X}_S \longrightarrow \mathcal{T}_S$$ in $$f_T : \mathcal{X}_T \longrightarrow \mathcal{T}_T $$.
+
+*<u>Remark</u>: This definition seems to be very close to what can be found on [Wikipedia](https://en.wikipedia.org/wiki/Transfer_learning).*
+
+Intuition is features are shared across tasks and dataset. Don't start from scratch all the time. Reuse knowledge across tasks or across data.
+
+- Transfer learning across different tasks: Mostly remove the last layers and add new layers to adapt to the new task. See [Taskonomy](http://taskonomy.stanford.edu/) paper, for an overview of different tasks and how they are related.
+  ![Transfer learning across tasks](/assets/images/deepmind_lecture_part_1/e04_01_transfer_learning_task.png)
+- Transfer learning across different domains: Train in simulation, test in the real world. Use tricks to adapt to target domain (for example domain randomization and hard negative mining to identify the most useful augmentations)
 
 ### 02 - Supervised ~~image~~ classification - Beyond single image input
 
-Experiment with people who recovered from blindness from surgery to see which tasks are hard, recovering objects from a scene. However same type of images with moving images allows them to do much better. Motion really helps with object recognition when learning to see. Conclusion, should use videos  for training object recognition during learning using translation, scale, etc.
+Experiment with people who recovered from blindness from surgery to see which tasks are hard, by making them recover objects from a scene. They have trouble identifying some scenarios, but you show them same type of images, but with moving images then they do much better. Motion really helps with object recognition when learning to see. Conclusion: should use videos for training object recognition.
 
-#### Input - Pairs of images
+#### **Input - Pairs of images**
 
-Optical flow estimation. Input are two images, for each pixel in image one, where did it end up in image two. Output is also dense image map
+What is optical flow estimation? Input are two images, for each pixel in image one $$I_1$$, we would like to know where it did end up in image two $$I_2$$. The output is a map of pixel wise displacement information, for horizontal and vertical displacement.
 
-**FlowNet**
+![Optical flow visualized](/assets/images/deepmind_lecture_part_1/e04_02_optical_flow.png)
+
+**Case study: FlowNet**
 
 Encoder-Decoder architecture like U-Net, fully supervised with euclidean distance loss. Invented Flying chairs dataset with sim to real to learn about motion. Essence is that pixels that move together belong to the same object.
 
-#### Input- Videos
+#### **Input - Videos**
 
-Base case: use semantic segmentation video and apply it frame wise (but don't use temporal information), this leads to flickering in a video. We could use 3D convolutions by stacking 2D frames to get volumes, kernels are 3D objects. In 3D convolutions the kernel moves in both space and time to create spatio-temporal feature maps (we can re-use strided, dilated, padded properties). 3D convolutions are non-causal, because you take into account frames from the future (times $$t-1, t, t+1$$), which is fine for off-line processing, but what applying it in real time? Can use masked 3D convolutions.
+Base case: use semantic segmentation video and apply it frame wise (but don't use temporal information), this leads to flickering in a video. We could use 3D convolutions by stacking 2D frames to get volumes, kernels are 3D objects. In 3D convolutions the kernel moves in both space and time to create spatio-temporal feature maps (we can re-use strided, dilated, padded properties). 
+
+![3D convolutions visualized](/assets/images/deepmind_lecture_part_1/e04_02_3D_conv.png)
+
+3D convolutions are non-causal, because you take into account frames from the future (times $$t-1, t, t+1$$), which is fine for off-line processing, but when applying it in real time we have to use masked 3D convolutions.
 
 Can do action recognition, video as input, targets are a an action label which is one-hot encoded.
 
@@ -603,7 +681,7 @@ What are good visiual representations for action? Keypoints could help
 
 Need to rethink vision models from the perspective of moving pictures with end goal in mind.
 
-### Highlights
+### My Highlights
 
 - Finally a good explanation of the difference between two-stage and one-stage detection (try googling the difference), 
 - Connection between object detection and semantic segmentation via U-Net structure.
