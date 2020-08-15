@@ -713,136 +713,371 @@ Need to rethink vision models from the perspective of moving pictures with end g
 
 ## Episode 5 - Optimization for Machine Learning
 
-### 01 - intro and motivation
+### 01 - Introduction and Motivation
 
-Learn from data by adapting prameters, minimization of an objective function. Works by small incremental changes to model parameters which each reduce the objective by a small amount.
+Optimization algorithms enable models to learn from data by adapting parameters to minimize an objective function. This works by making small incremental changes to model parameters which each reduce the objective by a small amount. Examples are prediction errors in classification or negative rewards in reinforcement learning. We use the following notation:
 
-Notation $$\theta \in \mathbb{R}^n$$, objective function $$h(\theta)$$, goal of otimization $$\theta^* = \argmin h(\theta)$$
+- Parameters: $$\theta \in \mathbb{R}^n$$, where $$n$$ is the dimension.
+- Real-valued objective function: $$h(\theta)$$.
+- Goal of opimization: $$ \theta^* = \text{arg min}_{\theta} h(\theta)$$.
 
-Neural network training objectvie, sum over examples, loss is a disagreement between labels and predictions, $$f(x, \theta)$$ taking input x and outputting some prediction. 
+An example of an objective function in the 1D space:
 
-### 02 - gradient descent
+![1D objective function](/assets/images/deepmind_lecture_part_1/e05_01_objective_function.png)
 
-Basic gradient descent iteration. Definition of gradient and learning rate. Intuition about gradient descent, it is 'steepest descent'. High smoothness vs. low smoothness in the objective function. Gradient $$\nabla h(\theta)$$ gives greatest reduction in $$h(\theta)$$ per unit of change.
+A standard neural network training objective is
 
-Intuition.Gradient descent is minimizing a local approximation. Linear approximation using Taylor series, first order. $$d$$ small enough. Gradient update computed by minimizing within a sphere of radius $$r$$.
+$$h(\theta) = \frac{1}{m} \sum^m_{i=1} l(y_i, f(x_i, \theta))$$
 
-Problems of gradient descent in multiple dimensions, the narrow valley problem, hard to get a good learning rate change. No good signal in low learing rate case, too many steps.
+where $$ l(y, z)$$ is a loss function measuring the disagreement between label $$y$$ and prediction $$z$$. And $$f(x, \theta)$$ is a neural network function taking input $$x$$ and outputting some prediction. Note that we are summing over $$m$$ examples.
 
-Convergence theory, assumptions
+### 02 - Gradient Descent
 
-- Lipschitz continues derivatives: means gradient doesn't change too much as we change parameters (upper bound on curvature)
-- Strong convexity: function curves as least as much as the quadratic term (lower bound on curvature) (why would you want a lower bound? signal?)
-- Gradients are computed exactly, i.e. not stochastic
+A basic gradient descent iteration is:
 
-If conditions apply upper bounds on number of iteratiorns to achieve proximity with epsilon. (Key is kappa, prefer smaller values of kappa, its ratio between smallest curvature and highest curvature, often called condition number but globally. Similar to biggest eigenvalue in hessian divided by smallest one).
+$$\theta_{k+1} = \theta_k - \alpha_k \nabla h(\theta_k)$$
 
-useful in practice? Often too pessimistc (cover worst case examples), too strong assumptions (convexity), or too weak (real problems have more structure), rely on crude measures such as condition numbers, most important: focused on asymptotic behavior, often in practice we stop k long before that bound and there is no information about behavior in that section.
+where $$\alpha_k$$ is the learning rate (also frequently called step size) and 
 
-Design/choice of an optimizer should always be informed by practice, but theory can help to guide the way by builidng intuition. Be careful about anything 'optimal'
+$$\nabla h(\theta) = \begin{pmatrix} \frac{\partial h(\theta)}{\partial \theta_1} \\  \frac{\partial h(\theta)}{\partial \theta_2} \\ \vdots \\ \frac{\partial h(\theta)}{\partial \theta_n}\end{pmatrix}$$
+
+is the gradient, a $$n$$-dimensional vector. The intuition about gradient descent is it is the 'steepest descent'. Gradient $$\nabla h(\theta)$$ gives greatest reduction in $$h(\theta)$$ per unit of change. There is the issue between high smoothness vs. low smoothness in the objective function, where low smoothness can make the optimization process much more challenging as shown in the example below. 
+
+![High smoothness vs low smoothness](/assets/images/deepmind_lecture_part_1/e05_02_high_low_smoothness.png)
+
+Intuitively gradient descent is minimizing a local approximation. A 1st order Taylor series approximation for $$h(\theta)$$ around the current $$\theta$$ is
+
+$$h(\theta + d) \approx h(\theta) + \nabla h(\theta)^T d$$
+
+Which is a reasonable approximation for small enough $$d$$. A gradient update is computed by minimizing this within a sphere of radius $$r$$:
+
+$$-\alpha \nabla h(\theta) = \text{arg min}_{d: \| d \| \leq r} (h(\theta) + \nabla h(\theta)^T d) \qquad \text{where } r = \alpha \| \nabla h(\theta) \| $$
+
+*<u>Remark</u>: I think we can think of $$d$$ as either direction vector or difference in the 1D case.*
+
+![Linear approximation](/assets/images/deepmind_lecture_part_1/e05_02_linear_approximation.png)
+
+There are problems with gradient descent in multiple dimensions, as depicted n the narrow 2D valley in the image below. It is hard, if not impossible, to find a good learning rate. If it is too large it might leave the valley, if it is too small it might take too many steps to converge.
+
+![Linear approximation](/assets/images/deepmind_lecture_part_1/e05_02_2D_narrow_valley.png)
+
+#### **Convergence Theory**
+
+In convergence theory the following assumptions are made
+
+- $$h(\theta)$$ has Lipschitz continues derivatives: 
+
+  $$\| \nabla h(\theta) - \nabla h(\theta') \| \leq L \| \theta - \theta' \|$$
+
+  This means gradient doesn't change too much as we change parameters (**upper bound** on curvature)
+- $$h(\theta)$$ is strongly convex (perhaps only near a minimum):
+
+  $$h(\theta + d) \geq h(\theta) + \nabla h(\theta)^T d + \frac{\mu}{2} \|d\|^2$$
+
+  This means the function curves as least as much as the quadratic term (**lower bound** on curvature)
+- For now: Gradients are computed exactly, i.e. not stochastic.
+
+If the previous conditions apply and we take $$\alpha_k = \frac{2}{L+\mu}$$ then
+
+$$h(\theta_k) - h(\theta^*) \leq \frac{L}{2}\bigg(\frac{\kappa-1}{\kappa + 1}\bigg)^{2k} \| \theta_0 - \theta^*\|^2$$
+
+where $$\kappa = \frac{L}{\mu}$$. Remember that $$\theta^*$$ is the value of $$\theta$$ which minimizes the objective function $$h(\theta)$$.We have that the number of iterations to achieve $$ h(\theta_k) - h(\theta^*) \leq \epsilon$$ is
+
+$$k \in \mathcal{O}\bigg(\kappa \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
+
+The important variable here is $$\kappa$$, we prefer smaller values of $$\kappa$$, its ratio between smallest curvature and highest curvature, often called condition number but globally. This is similar to biggest eigenvalue in a Hessian divided by smallest.
+
+<u>Remark</u>: *The smaller $$L$$ the 'better behaved' the gradients of the function are, i.e. a small difference in $$\theta$$ will not lead to a large move  in $$\nabla h(\theta)$$. This will lead to a smaller $$\kappa$$ (as will a large $$\mu$$ but this is less desirable as it is a lower bound on the smoothness). Why is a large $$\kappa$$ bad? Because it will make the only term which depends on $$k$$ be close to $$1 \approx \big(\frac{\kappa-1}{\kappa+1}\big)$$ for $$\kappa \gg 1$$ .*
+
+Is convergence theory useful in practice? 
+
+- It is often too pessimistic as it has to cover worst case examples.
+- Makes  too strong assumptions (convexity), or too weak (real problems have more structure).
+- It relies on crude measures such as condition numbers.
+- And most importantly: focused on asymptotic behavior, often in practice we stop long before that bound and there is no information about behavior in that part of the optimization process.
+
+Design/choice of an optimizer should always be more informed by practice than anything else, but theory can help to guide the way by building intuition. Be careful about anything 'optimal'.
 
 ### 03 - Momentum methods
 
-Motivation: Graident descent has tendency to flip back and forth (narrow valley example)
+The main motivation for momentum methods is the tendency of gradient descent to flip back and forth, as in the narrow valley example. The key idea is to accelerate movement along directions that point consistently down-hill across many consecutive iterations (i.e. have low curvature). How would we do this? Use physics guidance like a ball rolling along the surface of the objective function (for a vivid illustration, checkout this [youtube video](https://www.youtube.com/watch?v=qPKKtvkVAjY&t=53s)). Two variants of momentum:
 
-Key idea: Accelerate moviement along directions with low curvature
+- Classical momentum:
 
-How:Use physics guidance like a ball rolling along the surface of the objective function (funny illustration)
+  $$\begin{align} 
+   v_{k+1} &= \eta_k v_k - \nabla h(\theta_k) \qquad v_0=0  \\ 
+  \theta_{k+1} &= \theta_k + \alpha_k v_{k+1}  
+  \end{align}$$  
 
-Classical momentum: velocity vector $$v$$, friction is $$\eta$$
+  Where $$\alpha_k$$ is the learning rate and $$\eta_k$$ the momentum constant.
 
-Nestrov variant: more useful in theory, sometimes in practice.
+- Nesterov's variant:  
+  $$\begin{align} 
+   v_{k+1} &= \eta_k v_k - \nabla h(\theta_k + \alpha_k \eta_k v_k) \qquad v_0=0  \\ 
+  \theta_{k+1} &= \theta_k + \alpha_k v_{k+1}  
+  \end{align}$$  
 
-2D valley example. Never oscillate out of control, veloctiy keeps acummulating in the downward direction.
+Classical momentum we call $$v$$ the velocity vector and $$\eta$$ the friction. The Nesterov variant is more useful in theory, but also sometimes in practice. In the 2D valley example from above, the velocity keeps accumulating in the downward direction and never oscillates out of control.
 
-Upper bounds for nestrov momentum variant, now term depends on the square root of kappa, number of iterations is roughly the square root instead of linear. Makes bigger difference when kappa is large
+![Narrow 2D valley example with momentum](/assets/images/deepmind_lecture_part_1/e05_03_2D_narrow_valley_momentum.png)
 
-In technical sense this is the best we can do for first order methods. Definition of first-order method. Updates are a linear combination of previous gradients we have seen, this includes a certain class of algorithms: gradient descent, momentum emthods, conjugate gradients. Not included: preconditioned gradient descent, 2-nd order methods. Given the definition of first order method, we can get a lower bound which says we can not converge faster than square root of kappa. Overview of iteration counts.
+Given the objective function $$h(\theta)$$ satisfying the same technical conditions as before, and choosing $$\alpha_k$$ and $$\eta_k$$ carefully, Nesterov's momentum method satisfies:
+
+$$h(\theta_k) - h(\theta^*) \leq L \bigg(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}}\bigg)^{k} \| \theta_0 - \theta^*\|^2$$
+
+for $$\kappa = \frac{L}{\mu}$$. The number of iterations to achieve $$h(\theta_k) - h(\theta^*) \leq \epsilon$$ is
+
+$$k \in \mathcal{O}\bigg(\sqrt{\kappa} \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
+
+For the upper bounds for the Nesterov momentum variant, the term now depends only on the square root of $$\kappa$$, meaning the number of iterations is roughly the square root instead of linear. This makes bigger difference when $$\kappa$$ is large, i.e. our function has high curvature.
+
+In technical sense this is the best we can do for a **first-order method**. A first-order method is one where the updates are linear combinations of observed gradients, i.e.:
+
+$$\theta_{k+1} - \theta_k = d \in \text{Span}\lbrace \nabla h(\theta_0), \nabla h(\theta_1), \dotsc, \nabla h(\theta_k) \rbrace$$
+
+The following methods are of first-order:
+
+- Gradient descent
+- Momentum methods
+- Conjugate gradients
+
+What is not included is preconditioned gradient descent / 2nd-order methods. Given the definition of first order method, we can get a lower bound which says we can not converge faster than $$\sqrt{\kappa}$$. If we assume that the number of steps is greater than the dimension $$n$$ (the number of parameters), and it usually is. Then, there is an example objective satisfying the previous conditions for which:
+
+$$h(\theta_k) - h(\theta^*) \geq \frac{\mu}{2} \bigg(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa} + 1}\bigg)^{2k} \| \theta_0 - \theta^*\|^2$$
+
+with $$\kappa = \frac{L}{\mu}$$. And the number of iterations to achieve $$h(\theta_k) - h(\theta^*) \leq \epsilon$$
+
+$$k \in \mathcal{\Omega}\bigg(\sqrt{\kappa} \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
+
+*<u>Remark</u>: Remember from complexity theory that $$\Omega$$ is the notation for the asymptotic lower bounds. So it will take at least $$\sqrt{\kappa} \log\big(\frac{1}{\epsilon}\big)$$ iterations (up to some constant) to approximate the optimum up to a distance of $$\epsilon$$.*
+
+We can compare all the bounds we have seen so far:
+
+- (Worst-case) the lower bound for 1st-order methods is square root of $$\kappa$$: 
+
+  $$k \in \mathcal{\Omega}\bigg(\sqrt{\kappa} \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
+
+- The upper bound for gradient descent is linear in $$\kappa$$: 
+
+  $$ k \in \mathcal{O}\bigg(\kappa \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
+
+- The upper bound for GD with Nesterov's momentum is square root of $$\kappa$$: 
+
+  $$ k \in \mathcal{O}\bigg(\sqrt{\kappa} \log\bigg(\frac{1}{\epsilon}\bigg)\bigg)$$
 
 ### 04 - 2nd-order methods
 
-Problem with first order methods: dependency on condition number kappa. Very large for certain problems (some deep architectures), although not for ResNets. 2nd Order methods can improve or eliminate the dependency on kappa.
+The problem with first order methods is their dependency on condition number $$\kappa = \frac{L}{\mu}$$. This can get very large for certain problems, especially deep architectures (although not for ResNets). 2nd Order methods can improve or eliminate the dependency on $$\kappa$$.
 
-Derivation of Newtons method, using 2nd-order Taylor series, easiest but not necessary the best way. When minimizing with respect to d, you get the inverse of the Hessian. Update iteration remains the same. Can also add momentum into this, but can't help if you have perfect second order method (won't use momentum in this discussion, in practice it is used). Valley example revisited.
+#### **Derivation of Newton's Method**
 
-Comparison to gradient descent. See gradient descent as primitive second order method, maximum allowable global learning rate for GD to avoid divergence. Gradient descent implicitly minimizes a bad approximation of 2nd order taylor series. Subsittue Hesian with L times Identity matrix, says curvature is maximal everywhere (in all directions, max curvature), too pessimistic an approximation
+We can approximate $$h(\theta)$$ by its 2nd-order Taylor series around a fixed $$\theta$$:
 
-Issues with local quaratic approximations
+$$h(\theta + d) \approx h(\theta) + \nabla h(\theta)^Td + \frac{1}{2}d^T H(\theta) d$$
 
-- Quadratic approximation of objective is only correct in  very local region (often neglected). 
-- Curvature can be approximated to optimistically in a global sense (gradient descent doesn't have the issue because it takes the max global curvature)
-- Newtons method uses the hession $$H(\theta)$$ which may become an understimate in the region once we take an updating step
-- Solution: restrict updates into region around point where approximation is good enough (implementation is tricky)
+where $$H(\theta)$$ is the Hessian of $$h(\theta)$$. 
 
-Trust-regions and dampening, take region $$r$$ ball. Is often equivilant to global global hessian approximation plus $$\lambda I $$ for some $$\lambda$$. Lambda depends on $$r$$ in a complicated way, not need to worry to much about that in practice.
+![Visualization of 2nd order approximation](/assets/images/deepmind_lecture_part_1/e05_04_2nd_order_approximation.png)
 
-Alternative curvature matrices, going beyond the hessian. No one uses Hessian in neural netowrks, and you don't want to use it. It is local optimal (2nd order taylor seres), but that might not be what we want. Might want a more global view, or a more conservative approximation.
+This local approximation can be minimized to get
 
-Most important families of examples:
+$$d= -H(\theta)^{-1} \nabla h(\theta)$$
 
-- Generalized gauss-netwon matrix
+And the the current iterate $$\theta_k$$ can be updated with
+
+$$\theta_{k+1} = \theta_k - H(\theta)^{-1} \nabla h(\theta_k)$$
+
+Using the 2nd-order Taylor series is the easiest but not necessarily the best way. One can also add momentum into this, but this can't help if you have a perfect second order method, however it is still used in practice. In the previous valley example the 2nd-order method would clearly perform best:
+
+![Valley and 2nd order](/assets/images/deepmind_lecture_part_1/e05_04_2nd_order_valley.png)
+
+How does it compare to gradient descent? For gradient descent the maximum allowable global learning rate to avoid divergence is $$\alpha = \frac{1}{L}$$ where L is the Lipschitz constant (or maximum curvature). Gradient descent is implicitly minimizing a bad approximation of the 2nd-order Taylor series:
+
+$$\begin{align} h(\theta +d)
+
+&\approx h(\theta) + \nabla h(\theta)^T d + \frac{1}{2} d^T H(\theta)d \\  
+
+&\approx h(\theta) + \nabla h(\theta)^T d + \frac{1}{2} d^T (LI)d
+
+\end{align}$$
+
+Where I is the $$n$$-dimensional identity matrix. This basically assumes that the curvature is maximal in every direction, which is a very pessimistic assumption of $$H(\theta)$$.
+
+However there are some issues with the local quadratic approximation:
+
+- Quadratic approximation of objective is only correct in a very local region (often neglected). 
+  ![Breakdown of 2nd order method in non-local region](/assets/images/deepmind_lecture_part_1/e05_04_2nd_order_approximation_local.png)
+- Curvature can be approximated to optimistically in a global sense (gradient descent doesn't have the issue because it takes the global maximum curvature).
+- Newtons method uses the Hessian $$H(\theta)$$ which may become an underestimate in the region once we take an update step.
+
+The solution is to restrict update $$d$$ into region $$R$$ where approximation is good enough, however the implementation of this is tricky.
+
+#### **Trust-regions and dampening**
+
+Take a region $$R$$ as an $$r$$ ball: $$R = \lbrace d: \| d \|_2 \leq r \rbrace$$. Then computing
+
+$$\text{arg min}_{d \in R} \bigg(h(\theta) + \nabla h(\theta)^T d + \frac{1}{2} d^T H(\theta)d\bigg)$$
+
+is often equivalent to
+
+$$-(H(\theta) + \lambda I)^{-1} \nabla h(\theta) = \text{arg min}_d \bigg(h(\theta) + \nabla h(\theta)^T d + \frac{1}{2} d^T H(\theta + \lambda I)d\bigg) $$
+
+for some $$\lambda$$. Where $$\lambda$$ depends on $$r$$ in a complicated way, but we can work with $$\lambda$$ directly (no need to worry about that in practice).
+
+<u>Remark</u>: *This point here is not entirely clear to me. The minimum in some region $$R$$ is often the same as to the global approximation $$H(\theta)$$ plus some lambda?*
+
+The Hessian $$H(\theta)$$ is not always the best quadratic approximation for optimization. No one uses the Hessian in neural networks, it is local optimal, for a 2nd-orer Taylor series, but that might not be what we want. We would like a more global view, a more conservative approximation.
+
+![Global vs. Local approximation](/assets/images/deepmind_lecture_part_1/e05_04_more_global_approximation.png)
+
+Most important families of related examples are:
+
+- Generalized Gauss-Newton matrix (GGN)
+  <u>Remark</u>: *I was unable to find a brief and meaningful definition of GGN, for the interested reader there is an in-depth [paper](https://arxiv.org/pdf/1412.1193.pdf) from the lecturer about all the topics covered in this part, including a discussion of GGN.*
+
 - Fisher information matrix (often equivalent to first)
+
+  <u>Remark</u>: *[Definition](https://web.stanford.edu/class/stats311/Lectures/lec-09.pdf) of the Fisher information matrix for those (like me) who are not terribly familiar with it:*
+  *Let $$\lbrace P_{\theta} \rbrace{\theta in \Theta}, \Theta \subset \mathcal{R}^n$$ denote a parametric family of distributions on a space $$\mathcal{X}$$. Assume each $$P_{\theta}$$ has a density given by $$p_{\theta}$$. Then the Fisher information associated with the model is the matrix given by*
+
+  $$I_{\theta} = \mathbb{E} \bigg[\nabla \log\big(p_{\theta}(X)\big) \nabla \log \big(p_{\theta}(X)\big)^T\bigg] $$
+
+  *Intuitively the Fisher information captures the variability of the gradient $$\log(p_{\theta})$$*
+
 - "Empirical Fisher" (cheap but mathematically dubious)
 
-Nice properties: Always positive semi-definite (no negative curvature, would mean you can go infintiely far). Parametrization invriant of updates in small learning rate limit (not like Newton). Emperically, it works better in practice (not that clear why).
+The have nice properties: 
+
+- Always positive semi-definite (no negative curvature, would mean you can go infinitely far). 
+- Give parametrization invariant updates in small learning rate limit (not like Newton). 
+- Empirically, it works better in practice for neural network optimization (not that clear why).
 
 Problems when applying 2nd order method for neural networks, 
 
-- $$\theta$$ can have 10s of miilions of dimensions
-- Can not compute and invert $$n \times n$$ matrix.
-- Hence we must make approximations of the curvature matrix for computation, storage, and inversion. Approximate matrix with simpler form.
+- $$\theta$$ can have 10s of millions of dimensions.
+- Can not compute, store or invert an $$n \times n$$ matrix.
+- Hence we must make approximations of the curvature matrix for computation, storage, and inversion.
 
-#### Diagonal approximation
+This is typically done by approximating the full matrix with simpler form.
 
-Zero out all the non-diagonal elements, inversion is easy and O(n). Computation depends on form of original matrix. Unlikely to be accurate, but can compensate. Used in RMS-prop and Adam methods to approximate empirical fisher matrix. Obvious problem, very primitive approximation, only works if axis aligned scaling issues appear (valley example with two coordinates), normally curvature is not axis-aligned.
+#### **Diagonal approximation**
 
-#### Block-diagonal approximations
+The simplest approximation is the diagonal approximation which zeros out all the non-diagonal elements. Inversion is then easy and $$\mathcal{O}(n)$$. The comutational cost depends on form of original matrix, might be easy or hard. However it is unlikely to be accurate, but can compensate for basic scaling differences between parameters. Used in RMS-prop and Adam methods to approximate Empirical Fisher matrix. It is a very primitive approximation, only works if axis aligned scaling issues appear, normally curvature is not axis-aligned.
 
-Group could correspond to  weights going into neural net block, all weights associated with one particular layer, all weights for given layer. Storage cost O(bn), inversion cost O(b^2n), only realistic for small block sizes.
+![Diagonal approximation](/assets/images/deepmind_lecture_part_1/e05_04_diagonal_approximation.png)
 
-Blocks for one layer can still be in the millions, which is way to big. Not a popular approach for many years now.
+#### **Block-diagonal approximations**
 
-#### Kronecker-product approximations
+Blocks could correspond to all the weights going in and out of a given unit, or all the weights of one layer. here the Storage cost for a block of size $$b$$ is $$\mathcal{O}(bn)$$, and the inversion cost is $$\mathcal{O}(b^2n)$$. This is only realistic for small block sizes, as one layer can still be in the millions of parameters. This has not been a popular approach for the past couple of years. One well-known example developed for neural networks is TONGA.
 
-Block-diagonal as start, but approximate block digagnoal by kronecker product fo two smalle matrices. Has storage cost of more than O(n), but not that much more (slides are wrong). Apply inverse of O(b^0.5 n), could still be very large for one million parameters this will be a thousand. Used in most powerful but heavyweight optimizer, (K-FAC).
+<u>Remark</u>: *More details on TONGA can be found [here](https://www.microsoft.com/en-us/research/publication/topmoumoute-online-natural-gradient-algorithm/).*
 
-### 05 - stochastic optimization
+![Block Diagonal approximation](/assets/images/deepmind_lecture_part_1/e05_04_block_diagonal_approximation.png)
 
-So far everything was deterministic, because inttuion is easier to build. Why use stochastic methods? Number of samples can be very big, $$m$$ too large.
+#### **Kronecker-product approximations**
 
-Mini-Batching: Often strong overlap between $$h_i(\theta)$$, gradients will look similar. Randomly subsample a mini-batch of size $$b << m$$ and estimate with mean.
+It is block-diagonal approximation of GGN/Fisher where blocks correspond to network layers. But each block is  approximated by Kronecker product for two smaller matrices.
 
-Stochastic gradient descent, same as gradient descent but with mini batch.
+$$ A \otimes C = \begin{pmatrix}
 
-To ensure convergece, we need to do
+[A]_{1,1} C & \dots & [A]_{1, k} C \\
 
-- Decay learning rate
-- Use Polyak averaging, taking an average of all the parameter values visited in the past. Or use exponentially decaying average (works better in practice but theory is not as nice)
+\vdots & \ddots & \vdots \\
+
+[A]_{k,1}C & \dots & [A]_{k,k} C \end{pmatrix}$$
+
+Has storage cost of more than  $$\mathcal{O}(n)$$, but not that much more (slides are wrong). Apply inverse of  $$\mathcal{O}(b^{0.5} n)$$, could still be very large, for example for one million parameters this will be a thousand. Currently used in most powerful but heavyweight optimizer, K-FAC.
+
+<u>Remark</u>: *Refresh of how the Kronecker-product works: If $$A$$ is an $$m \times n$$ matrix and $$B$$ is a $$p \times q$$ matrix, then the Kronecker product $$A \otimes B$$ is the $$pm \times qn$$ matrix:*
+
+$$ A \otimes B = \begin{pmatrix}
+
+a_{11} B & \dots & a_{1k} B \\
+
+\vdots & \ddots & \vdots \\
+
+a_{k1}B & \dots & a_{kk} B \end{pmatrix}$$
+
+### 05 - Stochastic Methods
+
+So far everything was deterministic, because intuition is easier to build. Why use stochastic methods? Typical objectives in machine learning are an average overa ll training cases:
+
+$$h(\theta) = \frac{1}{m} \sum^m_{i=1} h_i(\theta)$$
+
+Number of samples can be very big for $$m \gg 1$$. This also means computing the gradient is expensive:
+
+$$ \nabla h(\theta) = \frac{1}{m} \sum^m_{i=1} \nabla h_i(\theta)$$
+
+The solution is mini-batching: There is often a strong overlap between $$h_i(\theta)$$. This is especially true early in the learning process and most $$\nabla h_i(\theta)$$ will look similar. Randomly subsample a mini-batch of training cases $$S \subset \lbrace 1, \dotsc, m \rbrace$$ of size $$b << m$$ and estimate the gradient as the mean of the subsample:
+
+$$\hat{\nabla} h(\theta) = \frac{1}{b} \sum_{i \in S} \nabla h_i(\theta)$$
+
+So stochastic gradient descent is the same as gradient descent but with mini-batch. We replace the gradient with the gradient estimate and the procedure becomes stochastic gradient descent (SGD):
+
+$$\theta_{k+1} = \theta_k - \alpha_k \hat{\nabla} h(\theta_k)$$
+
+To ensure convergence, we need to do one of the following:
+
+- Decay the learning rate: 
+
+  $$\alpha_k = \frac{1}{k}$$
+- Use Polyak averaging, taking an average of all the parameter values visited in the past:
+
+  $$ \overline{\theta}_k = \frac{1}{k+1} \sum^k_{i=0} \theta_i $$
+
+  Or use exponentially decaying average (works better in practice but the theory is not as nice)
+
+  $$\overline{\theta}_k = (1-\beta) \theta_k + \beta \overline{\theta}_{k-1}$$
 - Slowly increase the mini-batch size during optimization
 
-Convergence properties of stochastic methods: Convergence is slower than non-stochastic versions. Polyak averaging is not that bad, no log of one over epsilon, this makes the depencency much worse for small epsilon. Do not that badly in practice. Best you can do in theory, can be proved due to intrinsic uncertainty. So Polyak averaging is optimal in asymptotical sense.
+The theoretical convergence properties of stochastic methods are not as good, they converge slower than non-stochastic versions. The asymptotic rate for SGD with Polyak averaging is
 
-#### Stochastic 2nd order and momentum methods
+$$E[h(\theta_k)] - h(\theta^*) \in \frac{1}{2k} \text{tr}(H(\theta^*)^{-1} \Sigma) + \mathcal{O}(\frac{1}{k^2})$$
 
-Can use mini-batch gradient for 2nd-order and momentums too. Estimate curvature matrices stochastically with decayed averaging over multiple steps. But no stochasic optimization method that has seen same amount of data can have better asymptotic convergence speed than SGD with Polyak. But pre-asymptotic peformance matters! 2nd order can still be useful if: loss surface curvature is bad enough or mini batch size is large enough (slides are out of sync here, he points at no log slide (convergence of stochastic methods)). Nets without skip connections, i.e. harder to optimize profit from second order methods such as K-FAC (impossible to optimize with first order methods), if you include skip connections the performance difference disappears. Hence implicit curvature number of ResNet is pretty good. Second order methods are twice as slow, but with some implementation tricks you can get to only 10% slower.
+where $$\Sigma$$ is the gradient estimate of the covariance matrix. The iterations until convergence follow:
 
-making nets easier to optimize vs. making optimization better, new classes of models might profit from better optimization models.
+$$k \in \mathcal{O}(\text{tr}(H(\theta^*)^{-1}\Sigma)\frac{1}{\epsilon})$$
 
-Questions:
+whereas before we had $$k \in \mathcal{O}(\sqrt{\kappa} \log(\frac{1}{\epsilon}))$$. Note that there is no logarithm around the term $$\frac{1}{\epsilon}$$ in the stochastic case. This makes the dependency much worse for small epsilon, or very close approximations. It's the best you can prove in theory due to the intrinsic uncertainty. In practice they do not that badly. Polyak averaging is optimal in a asymptotic sense.
 
-- Initialization: It is very hard, deep subject new results upcoming this year. For now every initialization start with the basic Gaussian factor. Becomes important when not using batch norm or skip connections.
-- Batchnorm and resnet make network look linear in beginning, so its easy to optimize in beginning and only adds complexity over time.
-- Regularization: Not important these days, should not rely on optimizer to do regularization
-- No one measures condition number in practice, and it would not capture the essence (some dimensions might be completely flat)
-- New emergent research, if you start with good initialization, neural networks loss surface will look quadratically convex in your neighborhood and you can get to zero error (global minimum) with the above mentioned techniques.
-- Reason for lowering learning rate or Polyak averaging is inversely related to batch size (larger batch size reduces gradient variance estimate, so there is less need for those techniques.). Double batch size, double learning rate (as a naive rule)
+#### **Stochastic 2nd order and momentum methods**
+
+We can use mini-batch gradient estimates for 2nd order and momentum methods too. The curvature matrices are estimated stochastically using decayed averaging over multiple steps. But no stochastic optimization method that has seen same amount of data can have better **asymptotic** convergence speed than SGD with Polyak. However **pre-asymptotic** performance matters more in practice. Hence stochastic 2nd order and momentum methods can still be useful if
+
+- The loss surface curvature is bad enough
+- The mini-batch size is large enough
+
+Generally networks without skip connections, which are way harder to optimize, profit most from second order methods such as K-FAC. This is illustrated in the image below where three optimizers are used to train an image ImageNet classifier. The network is a 100 layers deep CNN without skip connections or batch norm and is carefully initialized.
+
+![Comparing different optimization methods](/assets/images/deepmind_lecture_part_1/e05_05_optimization_methods_compared.png)
+
+Once you include skip connections and BatchNorm the performance difference disappears. This means that the implicit curvature number of ResNet is pretty good. 2nd-order methods are twice as slow, but with some implementation tricks you can get them to be only 10% slower than 1st order methods.
+
+#### **Conclusion and Summary**
+
+- Optimization methods: Are the main engine behind neural networks and enable learning models by adapting parameters to minimize some objective.
+- 1st-order methods (gradient descent): Take steps in the direction of "steepest descent" but run into issues when curvature varies strongly in different directions.
+- Momentum methods: Use principle of momentum to accelerate along directions of lower curvature and optain "optimal" convergence rates for 1st-order methods.
+- 2nd-order methods: Improve convergence in problems with bad curvature. But they require use of trust-regions and the curvature matrix approximations need to be practical in high dimensions (e.g. for neural networks). 
+- Stochastic methods: Have slower asymptotic converge but pre-asymptotic convergence can be sped up using 2nd-order methods and/or momentum.
+
+Overall we can make make networks easier to optimize with architectural choices or make optimization better. Even though currently network optimization works well with 1st order methods, for new classes of models we might need better optimization methods.
+
+**Questions**:
+
+- On Initialization: It is very hard and a deep subject, there are new results upcoming this year. For now every initialization starts with the basic Gaussian factor. Becomes important when not using batch norm or skip connections.
+- On BatchNorm and ResNet: they make the network look linear in beginning, so its easy to optimize in beginning and only adds complexity over time.
+- On Regularization: Not important these days, should not rely on optimizer to do regularization.
+- On condition number: No one measures condition number in practice, and it would not capture the essence (some dimensions might be completely flat)
+- On new emergent research: if you start with good initialization, neural networks loss surface will look quadratically convex in your neighborhood and you can get to zero error (global minimum) with the above mentioned techniques.
+- On the reason for lowering learning rate or Polyak averaging: it is inversely related to batch size (larger batch size reduces gradient variance estimate, so there is less need for those techniques.). When you double the batch size, you can double the learning rate (as a naive rule).
 
 ### Highlights
 
-- Gradient descent as linear or quadratic approximation by using Taylor series in small neighborhood.
-- Optimality for various methods, especially SGD with Polyak in stochastic case
-- ResNet and especially skip connections make the optimization problem much easier for the moment
-- This line of research might become highly important again once we use different blocks
+- See gradient descent as linear or quadratic approximation by using Taylor series in small neighborhood.
+- Optimality for various methods, especially SGD with Polyak in stochastic case.
+- ResNet and especially skip connections make the optimization problem much easier for the moment.
+- This line of research might become highly important again once we use different network building blocks.
 
 
 
