@@ -1085,115 +1085,277 @@ Overall we can make make networks easier to optimize with architectural choices 
 
 ### 01 - Motivation
 
-So far vectors and images as inputs, now we look at sequences. Collections of elements where
+So far vectors and images as inputs, now we look at sequences. They are a collection of elements where
 
 - Elements can be repeated
 - Order matters
-- Variable length (potentially infinite)
+- Length is variable (potentially infinite)
 
-Sequences are everywhere: words, letters, speech, videos, images, programs, decision making.
+![A sequence](/assets/images/deepmind_lecture_part_1/e06_01_a_sequence.png)
+
+Sequences are everywhere: words, letters, speech, videos, images, programs, decision making. 
+
+![Different sequences](/assets/images/deepmind_lecture_part_1/e06_01_different_sequences.png)
+
+The models we have seen so far don't do well with sequential data.
 
 ### 02 - Fundamentals
 
 Training machine learning models, the four basic questions to answer: data, model, loss and optimization for the supervised case. In sequence we have
 
-- Data: $$\lbrace x \brace_i$$
-- Model: probaliity of a sequence $$p(x) = f_{\thetha}(x)
-- Loss: loss of log sum
-- Optimization similar than supervised case,
+- Data: We have a sequence of inputs
 
-Modeling word probabilites is really difficult. Simplest model, product of individual words. But independence assumption does not match the real distribution.
+  $$\lbrace x \rbrace_i$$ 
 
-More realistic model, conditional probability on previous words $$p(x_t) = p(x_t \mid x_1, \dotsc, x_{t-1})$$. Use the chain rule to get the joint probability. Has scalability issues, matrix of of size $$n \times n$$. Scales with $$vocabulary^N$$ where $$N$$ is the length of the sentence. Early NLP, fix windows size, called N-grams. Downsides, does not take into account words that are more than $$N$$ words away, data table is still huge.
+  In the supervised case we have $$\lbrace x, y \rbrace_i$$.
+- Model: the probability of a sequence 
 
-Summary: Modeling probabilities of sequences scales badly
+  $$p(x) \approx f_{\theta}(x)$$  
 
-Learning to model word probabilities
+  In the supervised case we have $$y \approx f_{\theta}(x)$$.
+- Loss: The sum of the log probability of the sequence under the model
 
-1. Vectorising the context, approximate $$p(x_t \mid x_1, \dotsc, x_{t-1}) = p(x_t \mid h)$$
+  $$L(\theta) = \sum^N_{i=1} \log(p(f_{\theta}(x_i)))$$
 
-   Need the following properties for $$f_{\theta}$$
+  In the supervised case we have $$L(\theta) = \sum^N_{i=1} l(f_{\theta}(x_i), y_i)$$.
+- Optimization: Finding the parameter which minimizes the loss function
 
-   1. Order matters
-   2. Variable length
-   3. Lernable (differentiable)
-   4. Individual changes can have large effects (long-term dependency)
+  $$\theta^* = \text{arg min}_{\theta} L(\theta)$$
 
-2. Modeling conditional probabilities. Desirable properties
+  Which is the same as in the supervised case.
 
-   1. Individual changes can have large effects
-   2. Returns probability distribution
+Modeling word probabilities is really difficult. The simplest model would be the product of individual words, if we assume independence:
 
-#### Recurrent Neural Networks (RNN)
+$$p(\mathbf{x}) = \prod^T_{t=1} p(x_t)$$
 
-Persistent state ariable $$h$$ stores the information from the context observed so far
+But the independence assumption does not match the sequential nature of language. A more realistic model would be to assume conditional dependence of words:
 
-Two steps
+$$p(x_T) = p(x_T \mid x_1, \dotsc, x_{T-1})$$
 
-1. Calculate hidden state $$h_t$$ from $$x_t, h_{t-1}$$
-2. Predict the target $$y_{t+1}$$
+We could then use the chain rule to compute the joint probability of $$p(\mathbf{x})$$ from the conditionals
 
-We can unroll RNNs to backpropage. Loss is cross-entropy at each time step $$t$$, and sum up over all the words in a sentence. Paremeters $$\theta = W_y, W_x, W_h$$. Differentiating w.r.t. to $$W_y,$$, $$W_h$$ and $$W_y$$.
+![Chain rule for probabilities in text sequence](/assets/images/deepmind_lecture_part_1/e06_02_chain_rule_for_probabilities.png)
 
-- $$h_t$$
-- $$p(x_{t+1})$$
-- $$L_{\theta}(y, \hat{y})_t$$
+This is a more realistic model but imagine you model the simple dependence $$p(x_2 \mid x_1)$$ as below:
 
-Need to back propagate through time. (Equations)
+![Conditional dependence on one word](/assets/images/deepmind_lecture_part_1/e06_02_context_1_four_words.png)
 
-Vanishing gradients. Intuition example
+This is only for four words, typically language has thousands of words.
 
-- $$h_t = W_h h_{t-1}, h_t = (W_h)^t h_0$$ This will either go to infinity or to 0 depending on the norm of $$\mid W_h \mid$$.
+![Conditional dependence on one word but many words](/assets/images/deepmind_lecture_part_1/e06_02_context_scalability_issues.png)
 
-Values are bounded by thanh, but the gradients are still affected by it. No gradients if value is not close to -1 or 1. How can we capture long-term dependencies?
+And this is only for a context of size $$N=1$$, if you add more context then it will grow with $$\text{vocabulary}^N$$. Instead we could fix the window size, called N-grams:
 
-#### Long short-Term Memory (LSTM) networks
+$$p(\mathbf{x}) = \prod^T_{t=1} p(x_t \mid x_{t-N-1}, \dotsc, x_{t-1})$$
 
-Keeps a cell state $$c_t$$ and a some gates
+![N-grams](/assets/images/deepmind_lecture_part_1/e06_02_n_grams.png)
 
-- forget gate, combines current input and previous state : formula
-- input gates: formula
-- Output gate: formula
+It has the downside that it does not take into account words that are more than $$N$$ words away, and the data table [can still be huge](https://ai.googleblog.com/2006/08/all-our-n-gram-are-belong-to-you.html). In summary: modeling probabilities of sequences scales badly.
 
-Whats missing: gradients are not vanishing due to the path they can take through $$c_t$$, not going through, not talking about gate gate, LSTM are more closer to ResNet because of the skip connections. There are also GRU, similar than LSTM and more recent.
+Can we learn this probability estimation from data in a efficient way? Yes, by vectorizing the context, i.e. we summarize the previous words with the help of a function $$f_{\theta}$$ in a state vector $$h$$ such that
+
+$$p(x_t \mid x_1, \dotsc, x_{t-1}) \approx p(x_t \mid h)$$
+
+![Vectorizing context](/assets/images/deepmind_lecture_part_1/e06_02_vectorizing_context.png)
+
+What are desirable properties of $$f_{\theta}$$?
+
+- Order matters
+- Variable length
+- Differentiable (Learnable)
+- Pairwise encoding
+- Preserves long-term dependencies
+
+How do N-gram and addition score on these properties?
+
+![Scoring n-gram and additon](/assets/images/deepmind_lecture_part_1/e06_02_n_gram_addition.png)
+
+At the same time we want a function $$g_{\theta}$$ which is able to model conditional probabilities from the hidden state $$h$$
+
+![Modeling conditional probabilities](/assets/images/deepmind_lecture_part_1/e06_02_modeling_g_theta.png)
+
+What are desirable properties of $$g_{\theta}$$?
+
+- Individual changes can have large effects (non-linear/deep)
+- Returns a probability distribution
+
+How do we build deep networks that meet these requirements? 
+
+#### **Recurrent Neural Networks (RNN)**
+
+RNNs can do both at once with two steps: 
+
+1. Calculate state variable $$h_t$$ from current input $$x_t$$ and previous context $$h_{t-1}$$:
+
+   $$ h_t = \tanh(W_h h_{t-1} + W_x x_t)$$
+
+2. Predict the target $$y$$ (next word) from the state $$h$$
+
+   $$p(y_{t+1}) = \text{softmax}(W_y h_t)$$
+
+Where $$W_h, W_x, W_y$$ are three weight matrices which are shared over all steps.
+
+![Recurrent Neural Network, one step](/assets/images/deepmind_lecture_part_1/e06_02_rnn.png)
+
+
+
+We can unroll RNNs to do back-propagation. As loss we use cross-entropy for each word output, as word prediction is a classification problem where the number of classes is the size of the vocabulary:
+
+- Loss for one word: $$L_{\theta}(y, \hat{y})_t = -y_t \log(\hat{y}_t)$$
+- Loss for the sentence: $$L_{\theta}(y, \hat{y}) = - \sum^T_{t=1} y_t \log(\hat{y}_t)$$
+
+For parameters $$ \theta = \lbrace W_h, W_x, W_y \rbrace $$. We have to calculate the derivative of the loss function with respect to each of them. Starting with $$W_y$$ we get:
+
+$$\frac{\partial L_{\theta, t}}{\partial W_y} = \frac{\partial L_{\theta, t}}{\partial \hat{y}_t} \frac{\partial \hat{y}_t}{\partial W_y}$$
+
+For the derivative with respect to $$W_h$$ the case is a bit more complicated as we have to unroll over time:
+
+$$\frac{\partial L_{\theta, t}}{\partial W_h} = \frac{\partial L_{\theta, t}}{\partial \hat{y}_t}  \frac{\partial \hat{y}_t}{\partial h_t} \frac{\partial h_t}{\partial W_h}$$
+
+where 
+
+ $$\begin{align} 
+
+\frac{\partial h_t}{\partial W_h} &=  \frac{\partial h_t}{\partial W_h} +  \frac{\partial h_t}{\partial h_{t-1}} \frac{\partial h_{t-1}}{\partial W_h} \\ 
+
+&= \frac{\partial h_t}{\partial W_h} +  \frac{\partial h_t}{\partial h_{t-1}} \bigg[ \frac{\partial h_{t-1}}{\partial W_h} + \frac{\partial h_{t-1}}{\partial h_{t-2}} \frac{\partial h_{t-2}}{\partial W_h}\bigg]  \\ 
+
+&= \dotsc  \\  
+&= \sum^t_{k=1} \frac{\partial h_t}{\partial h_k} \frac{\partial h_k}{\partial W_h} 
+
+\end{align}$$
+
+Putting this back together with the initial formula we get
+
+$$\frac{\partial L_{\theta, t}}{\partial W_h} = \frac{\partial L_{\theta, t}}{\partial \hat{y}_t}  \frac{\partial \hat{y}_t}{\partial h_t} \frac{\partial h_t}{\partial W_h} = \sum^t_{k=1} \frac{\partial L_{\theta, t}}{\partial \hat{y}_t}  \frac{\partial \hat{y}_t}{\partial h_t} \frac{\partial h_t}{\partial h_k} \frac{\partial h_k}{\partial W_h}$$
+
+However the longer we have to unroll a RNN, the more problems we get with vanishing gradients. Consider the following example:
+
+![Vanishing gradients, simplified example](/assets/images/deepmind_lecture_part_1/e06_02_vanishing_gradients.png)
+
+This leads to the following problems:
+
+$$\begin{align} 
+
+h_t &= W_h h_{t-1} & h_t \longrightarrow \infty  \text{ if } \mid W_h \mid > 1 \\
+
+h_t &= (W_h)^t h_0 & h_t \longrightarrow 0 \text{ if } \mid W_h \mid < 1
+
+\end{align}$$
+
+<u>Remark</u>: *In the first case we can do gradient clipping to stabilize the gradient*.
+
+While the values are bounded by $$\tanh$$ the gradients are still affected by it. It does not give a gradient if the value is not close to $$-1$$ or $$1$$.
+
+![Tanh gradients](/assets/images/deepmind_lecture_part_1/e06_02_tanh_gradients.png)
+
+Summarizing the properties of RNNs, they can model variable length sequences and can be trained via back-propagation. However they suffer from the vanishing gradients problem which stops them from capturing long-term dependencies.
+
+![Comparison table with RNN](/assets/images/deepmind_lecture_part_1/e06_02_properties_of_rnn.png)
+
+So how can we still capture long-term dependencies?
+
+#### **Long short-Term Memory (LSTM) networks**
+
+The architecture in the image below describes a LSTM cell. Note that here there are two states which are propagating between individual cells, we have the hidden state $$h_t$$ and additionally a cell state $$c_t$$.
+
+![LSTM gate](/assets/images/deepmind_lecture_part_1/e06_02_lstm_gate.png)
+
+An LSTM has three main pathways:
+
+1. Forget gate:
+
+   $$f_t^1 = \sigma(W_{f^1} [h_{t-1}, x_t] + b_{f^1})$$
+
+   ![LSTM forget gate](/assets/images/deepmind_lecture_part_1/e06_02_lstm_forget_gate.png)
+
+2. Input gates:
+
+   $$f^2_t = \sigma(W_{f^2}[h_{t-1}, x_t] + b_{f^2} ) \odot \tanh(W_{f^2} [h_{t-1}, x_t] + b_{f^2})$$
+
+   ![LSTM input gate](/assets/images/deepmind_lecture_part_1/e06_02_lstm_input_gate.png)
+
+3. Output gate:
+
+   $$h^*_t = \sigma(W_{h^*_t} [h_{t-1}, x_t] + b_{h^*_t}) \odot \tanh(c_t)$$
+
+   ![LSTM output gate](/assets/images/deepmind_lecture_part_1/e06_02_lstm_output_gate.png)
+
+<u>Remark</u>: *The explanation here why LSTM solve the vanishing gradient problem did not seem very clear from the speaker. From my understanding the vanishing gradient problem disappears because the gradient has an alternative path, it can flow through the $$c_t$$. There are no $$\tanh$$ or $$\sigma$$ functions between $$c_{t-1}$$ and $$c_t$$ which could shrink the gradient. Hence they perform a similar function to skip connections in a ResNet. For a more detailed explanation on RNNs and LSTMs I recommend the [excellent Standford lecture on RNNs](https://www.youtube.com/watch?v=6niqTuYFZLQ&list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv&index=11&t=0s).*
+
+LSTM overcome the vanishing gradient problem by the use of gating mechanisms and solve the long-range dependency problem.
+
+![Properties of LSTM in the table](/assets/images/deepmind_lecture_part_1/e06_02_properties_of_lstm.png)
 
 ### 03 - Generation
 
-Using a trained model to generate new sequences, so far we focused on optimizing the log probability estimates produced by model. An alternative way to use them is generation.
+So far we focused on optimizing the log probability estimates produced by the model
 
-Input first word and get $$\hat{y}$$, autoregressively  create a sequence. Use argmax to get maximum probability from the first output and put that in again
+$$L_{\theta}(y, \hat{y})_t = - y_t \log(\hat{y}_t)$$
 
-#### Imags as sequences PixelRCNN
+We could use the trained model to evaluate the probability of a new sentence. Or even better, we can use the trained to generate a new sequence. Start with a word and use the sampled $$\hat{y}$$ as input for the next iteration of the network.
 
-Softmax Sampling over the entire image, starting on top left, interesting to look on the distribution for each pixel. It produces some okay looking image, but not great to state of the art.
+![Generating a sequence with an RNN](/assets/images/deepmind_lecture_part_1/e06_03_rnn_generate_sequence.png)
 
-#### Natural languages as sequences
+We can use the arg max to decide which word was sampled.
 
-Sequence-to-sequence models, start with english words and use that as initial state, then start outputting japanese words. Flexible setup
+#### **Images as sequences PixelRNN**
 
-- One to one
-- One to many
-- many to one
-- many to many (RNN)
-- many to many  (sequence to sequence)
+We can also see an image as a sequence of pixels, which depends on all the values which have been sampled before. We start from the top left and go over all the lines.
 
-Google Neural machine Translation: Encoder and Decoder structure. Almost closed the gap between human and machine translation.
+![PixelRNN as idea](/assets/images/deepmind_lecture_part_1/e06_03_pixel_rnn.png)
 
-Image captioning: start with features from an image passed trough a neural network.
+We can do this in the same manner as for generating a sequence previously, we do softmax sampling over the entire image, starting on top left. It can be  interesting to look at the distribution for each pixel. It produces some okay looking image, but not great compared to state of the art methods.
 
-#### Audio waves as sequences
+![PixelRNN an example](/assets/images/deepmind_lecture_part_1/e06_03_pixel_rnn_example.png)
 
-Audio waves as sequences: convolutions. Using dilated conolutions, predict one signal at once. Taking into account various time scales.
+#### **Natural languages as sequences**
 
-#### Policies as sequences
+Sequence-to-sequence models can also be used for translation, start with English words and use that as initial state, then start outputting Japanese words. 
 
-Models which sequentially decide where to paint on a canvas. Using RL to draw like a human inside a drawing program. OpenAI five and Alphastar playing games using LSTM.
+![Sequence to sequence from English to Japanese](/assets/images/deepmind_lecture_part_1/e06_03_english_to_japanese.png)
 
-AlphaStar architecture. The core is an LSTM which gets fed different inputs
+There is more than one way to create sequences, from one-to-one to many-to-many.
 
-#### Attention for sequences: transformers
+![PixelRNN an example](/assets/images/deepmind_lecture_part_1/e06_03_sequence setup.png)
 
-Transformers vs. convolutions. Transformers is connected to every input, but weighted by attention. Example GPT2 which adapts to style and content.
+Google Neural Machine Translation: has an encoder and decoder structure. This architecture almost closed the gap between human and machine translation.
+
+![Google Neural Machine Translation](/assets/images/deepmind_lecture_part_1/e06_03_encoder_decoder_structure.png)
+
+Image captioning: start with features from an image passed trough a CNN, then feed the features as hidden state into a RNN.
+
+![Image Captioning](/assets/images/deepmind_lecture_part_1/e06_03_encoder_image_captioning.png)
+
+#### **Audio waves as sequences**
+
+We can see audio waves as sequences and apply convolutions. This is mostly done using dilated convolutions, to predict one signal at once. This structure allows for taking into account various time scales.
+
+![Audio waves as sequences](/assets/images/deepmind_lecture_part_1/e06_03_audio_waves_as_sequences.png)
+
+We can even put these models in the same table as before and compare it to RNN and LSTMS:
+
+![Convolutions as state encoders](/assets/images/deepmind_lecture_part_1/e06_03_properties_of_convolutions_as_encoder.png)
+
+#### **Policies as sequences**
+
+We can see reinforcement learning policies as sequences, these policies can be applied in many places. One example would be where to draw on a canvas. Another one is OpenAI five and Alphastar playing games using LSTM.
+
+![Alphastar playing games](/assets/images/deepmind_lecture_part_1/e06_03_sequence_in_alphastar.png)
+
+The image below shows the Alphastar architecture in more detail. While a ResNet is used to extract spatial information, the core is an LSTM which fuses inputs from different modalities and decides which actions to take. It keeps track of the state of the game.
+
+![Alphastar architecture](/assets/images/deepmind_lecture_part_1/e06_03_alphastar_architecture.png)
+
+#### **Attention for sequences: Transformers**
+
+What is the difference between a transformer and convolution architecture? The transformer is connected to every input which is weighted by attention (we will see more details in a later lecture). 
+
+![Convolutions vs Transformers](/assets/images/deepmind_lecture_part_1/e06_03_convolutions_vs_transformers.png)
+
+An example of a transformer architecture is  GPT-2 which adapts to style and content. It has 1.5 billion parameters and was trained on a dataset of 40GB of text data from eight million websites. The transformer is finally an architecture which fulfills all the criteria:
+
+![Properties of transformers](/assets/images/deepmind_lecture_part_1/e06_03_properties_of_transformers.png)
 
 ### Questions
 
