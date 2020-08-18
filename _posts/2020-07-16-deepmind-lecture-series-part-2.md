@@ -170,10 +170,133 @@ Summary
 
 ### My Highlights
 
-- Hard vs soft attention
+- Memory is attention over time
+- Hard vs soft attention. Learn if non-differentiable parts with RL
 - Transformers reduced to the essential
 
-## Episode 9 - Generative
+## Episode 9 - Generative Adversarial Networks
+
+### 01 - Overview
+
+What are generative models?
+
+We can learn an explicit ditribution from data. Ask how likely is a point or sample from it. Explicit vs. implicit distribution. Implicit means we can sample from the distribution without knowing it directly. Progress has been fast in the past couple of years since the original GAN paper.
+
+Discriminator vs. generator. Generator has latent noise as input. Distribution as an input. Often multivariate gaussian noise, much lower dimensionality. Take sample and pass ith through deterministic NN to generate a sample. Discriminator has the task to distinguish between the two distributions, can think of the Discrimnator as a a teacher. Discriminator is a learned loss functions, it guides and improves itself. In practice we don't have the resources to update the discriminator to optimality. Update discriminator first, and then the generator afterwards. Playing a two player game.
+
+Also think of GANs as distance minimization. Maximum likelihood maximization same as KL minimization. KL gives us nice connection to optimality. Want p(x) as high as possible, ratio as small as possible?
+
+Effectos of the choice of divergence. Model might be misspecificed, maybe distribution such as imagenet is too complex to model. Whant to ask what kind of tradeoff do different models have (if they can't fit full distribution). want to know what happens when we train KL(pstar, p) and KL(p, pstar). Blue is model, red is true distribution
+
+Are GANs doing divergence minimization? yes, see original paper. If D is ptimal, then generator is minimizing jenson shannon divergence. Gives us connection to optimality. So what is Jensen Shannon divergence? It does actually KL and reverse KL. Practice it depends on initialization of the model, can go both ways.
+
+In practice. D not optimal, compute limited, not have access to true distribution.
+
+Properties of KL and JS divergences. No learning signal from KL/JSD divergence if non-verlapping suppor between odel and data. Probability under data distribution will be infinity because p(x) (blue) is zero, KL divergence will be infinity. What happens if model goes closer, green line. But the infinity property still holds, ratio is infinity.
+
+Can we choose another V for min max game? And what will it correspond to? Wasterstein distance! Wasserstein has no ratio, and only does a maximization over one lipschitz functions. Function has to be realtively smooth. Find function f that can sepearate these points as much as possible. Under model f will be negative. Wasserstein distance goes down even if we don't have overlapping support, have restricted amount of growth. Distance has property of we do right thing we get rewared. But how to make it in a GAN? We can turn this into Wasserstein GAN, min max game but Lipschitz norm over D. 
+
+Other divergences and distances: MMD. Different kind of functions to optimize, reproducing kernel hilbert space. Can turn that into a MMD-GAN again. Also f-divergences and variational lower bound. But don't have access on $$p(x)$$ but we can find find variatianl lower bound, replace that in training objective. It tells us to optimize something simliar. Optimal T is density ratio, but that will cause problems. But overall similar objective.
+
+Why train GAN instead of doing divergence minimization? Problem: KL divergence requires knowledge of $$p(x)$$ which we don't have, because we only have implicit distribution. By using GANs we have expanded the class of model we can use to train KL divergence.
+
+Wasserstein distance and computationl intractabilit. Wasserstein is computationally intracable for complex cases. Would not be able to do that at each iteration step. But WGAN has same algorithmic implementation as original GAN. Its not exact but inspired by Wasserstein distance. Problem with smooth learning signal, is it really the case that there is no signal if there is no overlap? GANs only approximate the ratio, so it will never be infnity. So in practice model still learns. Why? Look at true ratio which is problematic, but when we train GANs we use lower bound because we don't have access. So the ratio is only estimated, and has to be in a certain class of functions. These functions are relatively smooth, and the won't be able to jump from zero to infinity such as the true ratio would. So we get a smooth learning signal in practice.
+
+Crucial idea: D is smooth approximation to the decision boundery of the underlying divergence. In practice GANs do not do divergence, hence they do not fail that hard. Think of discriminator as learned distances. We use NN features also in the loss.
+
+GANs vs divergence minimization. Take home message: practice not divergence minimization, learned distance.
+
+Empirically, underlying loss matters less than neural architectures, training regime and data.
+
+Onconditional and conditional models. Up until now only unconditional data generation.
+
+Now want to provide additional information, often in form of one hot vector, to specify class. Conditional label also fed to the discriminator. (Use that for domain adaptation GANs?)
+
+There can be mode collapse. G loss is not very easily interpretable, does not tell us much. Hence how can we evaluate GANs?
+
+### 02 - Evaluating GANs
+
+No evaluation metric is able to capture all desired properties.
+
+- Sample quality
+- Generalize
+- Representation learning
+
+have to evaluate on end goal
+
+- semi supervised learning: classification accuracy
+- reinforcement learning: agent reward
+- data generation: user evaluation
+
+But this is hard to do. Log likelihoods are not available (can't do that) because model is implicit distribution
+
+Incepton score: Model provides ratio of classes which stays the same. Dropping classes will be penalized. Does not measure anyting beyond class labels
+
+Frechet Inception Distance: Looks at label distribution and diversity inside the class. Looking at features in a pretrained classifier. Correlates with human evaluation. Biased for small number as samples.
+
+Check overfitting: nearest nighbours. Want to find closest images in feature space. Use pre trained classifier. We see that exact same dog does not exist.
+
+Take home: need multiple metrics to evaluate
+
+### 03 - The GAN Zoo
+
+
+
+#### **3.1 Image Synthesis with GANs: MNIST to ImageNet**
+
+Original GAN paper: simple data, small images. Not convolutional, only MLP. Works for digits. Mostly proof of concept
+
+Conditional GANs: generalize to the conditional setting. Category ID or image from another ID
+
+Laplacian GANs: starts from tiny image and upsample via gaussian, generate Laplacian to fill in details and add it up. Discriminator takes two input images. Discriminator and generator are conditional. First to produce relatively large images with decent results. Was fully convolutional operator.
+
+Deep Convolutional GANs: simple architecture, used BN. Made training much easier. Can do interpolation between to noise vectors in z space. Shows model is able to generalize, continuous distribution and not simply memorizing. Meaningful semantics in latent space, man plus glasses minus men plus women is women with glasses. Simliar to word2vec results.
+
+Spectrally Normalised GANs: First real try to do imagenet generation. No matter what input to layer, output values are not increased due to clamping singluar values. Regularizes discriminator. Uses hinge loss basically.
+
+Projection Discriinator. Learn a class embedding. Interesting theoretical justification for that projection
+
+Self-Attention GAN: Do global reasoning, used in language domain normally. In image domain gives you the opportunity to learn global statistics about the image. Better global coherence in generated image. Can say where the model is looking at.
+
+BigGAN: Main idea is to make GAN really really big, digest all the previous work and scale it up. Big Batch sizes are really important, use 2048 instead of 256. Was important because imagenet has 1000 classes, so each class should be in each batch. Also trained on JFT. A lot of tricks from previous papers, but lots of ablations studies. new tircks. Orthogonal regularisation, skip connections from noise, class elabel embedding shared accross layer fro class conditioning. Truncation trick was introduced, change standard devation of noise input. The smaller the variance, the more simliar samples become, givs you prototypical example of one class. Trick between variety and fidelity of the samples you can generate. Architecture trick which improved performance. Example of class leakage. 
+
+LOGAN: latent optimisation. Natural gradient descent step inside 
+
+Progressive GANs: parallel line of work compared to BigGAN. Start generating at low resolution and wait until convergence, then add an umpsampling level plus upsampling. Went up to 1024 to 1024. Great results on faces.
+
+StyleGAN: follow up, used more challenging data set. More diverse and not so famous people. Had stracured latent inputs z, and had spatial noise input. spacial vs global latent. Two kind of layers. Can have stochastic varations at different scales.
+
+Takeaways: still not easy to do. and methods have weaknesses
+
+#### **3.2 GANs for Representation Learning**
+
+Motivating example: DCGAN latent space without being explicitly told about it.
+
+BigGAN: Associates with high level image categories. Goal: model learns to associate latent space with a label.
+
+InfoGANs: Adds inference network, force the generator to use each latent variable meaningfully. Only works for small categories
+
+ALI or Bidirectioanl GANs: Jointly learn to generate data and learn representations from it. Two directions, generator and predictor. Discriminator sees both places. What is the enocders job here? there is a global optimum here, if there is perfect discriminator then the generator and encoder have to invert each other. that would be the global optimum. In autoencoder you explicitly minimize this objective, but here during training time the encoder and generator never see each others results. Its all trough the discriminator. Encoder never suffers from domain shift issues, because it never sees degenerate images from generator, it only ever sees real data.
+
+BigBiGANs: scales up the previous work: Reconstruction is pretty simliar even at high level. Lots of semantic properties are maintained. All this happens because the structure of the discriminator is shaping an implicit reconstruction error metric in semantic ways. Discriminator is convolutional network, so it is good at extracting semantic information. Enforaces semantics staying the same. Has fuzzy semantic memory. Get something similar to SOTA of self supervised images. NN tends to be very semnatically relevant.
+
+#### **3.3 GANs for Other Modalities & Problems**
+
+Pix2Pix: Paired images. Translate between two different domains. Have L1 reconstruction error to tell what exactly the output should be
+
+CycleGAN: Non-paired examples. Unsupervised translate between two different domains. Enforce cycle consistency next to all the GANs. Can translate between any two domains which have somewhat similar content.
+
+GANs for Audio Synthesis: WaveGAN, produce raw audio wave forms. Produce 1 sec clips. Text to speech for speech synthesis. 
+
+GANs for Video syntehsis and prediction: Time makes the problem quite harder than for images. Also due to compute requirements. Decompose discriminator into two different discriminators. Spacial discriminator few individual frames, ensures that each frame rooks coherent indepentely. Temproal discriminator sees downsamples images and ensues fluidity over time.
+
+GANs everywhere: RL, Image Editing, program synthesis. Motion transfer: everybody dance now, map dancing movements. Domain Adaptation. Art
+
+#### **3.4 More GANs at DeepMind**
+
+### My Highlights
+
+- KL vs reverse KL
 
 ## Episode 10 - Unsupervised
 
