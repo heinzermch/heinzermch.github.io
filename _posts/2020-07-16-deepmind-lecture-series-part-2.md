@@ -298,7 +298,167 @@ GANs everywhere: RL, Image Editing, program synthesis. Motion transfer: everybod
 
 - KL vs reverse KL
 
-## Episode 10 - Unsupervised
+## Episode 10 - Unsupervised Representation Learning
+
+[download](https://storage.googleapis.com/deepmind-media/UCLxDeepMind_2020/L10%20-%20UCLxDeepMind%20DL2020.pdf) for more
+
+### 01 - What is unsupervised learning
+
+Birds eye view. Supervised learning: Learn mapping from given inputs to given outpus, that hopefully generalizes. RL: which actions to take at any state to maximize expected future rewards, only gets feedback once it finishes the task, unless supervised supervised learning reward is sparse. Unsupervised learning: No teaching signal, only have input data.
+
+Do we need unsupervised learning?
+
+What can we do with that data? Clustering, dimensionality reduction, find dimenions which explain most of the variance (sounds like PCA)
+
+How do we evaluate it?
+
+No ground truth to compare it to. Clusters, how do we know hich clusters are good? So many possibilities. How do we know hich choises are good or bad. Simliar, pca and ICA orthogonality
+
+### 02 - Why is it important?
+
+How necessary is it. Why not develop better supervised algorithms instead?
+
+History of representation learning. 1949 first mention of machine learning. Kernel methods hugely influential until 2006, hinton introduced unsupervised pre training then with deep networks. 2012 AlexNet makes pre training unnecessary. Then from 2012 more data, deeper models, better hardware made huge leaps in many fields. Is machine learning solved? Data efficieny is bad compared to human learning. Takes orders of magnitude more time than humans to play atari. Often data is not readily available. Another issue is robustness, there are adversarial attacks, pandas can be tranlsated to gibbon . Can lead to huge issues in self driving cars. Generalization, once you learn to play a game, it should not matter what the background color is. Two state of the art RL algorithms fail, inability to grasp the core idea of the game. Transfer, re use previously acquired knowledge. Current state of the art models are not able to solve that if you change atari game slightly. All of the algorithms don't know causality, intuitive physics and abstract concepts.
+
+Solve many tasks efficiently is trending. We know how to solve single tasks with end to end deep learning given update and compute. For the next generation which is efficient, robust and generalizable for multiple tasks, we need a new paradigm. Leading minds think unsupervised learning is the solution. Represent the world before knowing a task. We won't need as much data anymore.
+
+Add representation between task and AI, flat are hierarchical? Once or learn it again. What would it look like?
+
+### 03 - What makes a good representation?
+
+Ill defined and challenging question. Look to related dispcplinecs for inspiration, for example neuroscience.
+
+Def what is representation: Formal system for making explicit certain entities or types of information, getgher with a specification of how the system does this. Three ways of writing 37, representational from is orthogonal to information content. It is a useful abstractiong and makes different types of computations more efficient. Think aobut the full form of the manifold.
+
+What hapens in the brain when information moves in it. Becomes a manifold when you rotate or change perspective. Makes it hard to untagle different objects. Ventral stream transform reformats into better form for that task. Untangle representations.
+
+How cross a street? What other properties should representations have. Appraoch from RL persepcte. Think of representations as states which form an MDP, can shed light on what properties representations should have. Two MDPs, should contain information about presence of cars. What information to include in representation?
+
+Solving tasks requires. Want to exclude all irelevant information for task. Should support attention to remove unimportant details. Allows for better clustering. Want to pull a taxi, need a different representation than going home task. Want to keep the information about the color of the car. hence latent representation should have as input the task we are trying to solve, to support the downstream tasks.
+
+Compositinality. Ability to infer the meaning of a complex expression. Man with binoculars example, who has the binoculars. Important because it leads to open-endedness.
+
+Evidence from neurosience: list
+
+Another related discipline: Physics. It constrains the form of tasks take. Can we bias a  representations to reflect certain fundamental pysical propertties to make it useful. There exists fundamental idea in pysics, that is the ideas of symmetries. Pysics is the study of symmetry. Example of spring. Can go forward in tame or translate in space, commutative property of two transformations. means that one is the symmetry of the other. Unify existing theories in physics. Same idea applies in natrual tasks, 3D scenes can be changed scale of an object or its positions, and the two tranformations can be interchanged without changing the final state. Can be seen as symmetries of each other. Representation should reflect symmetries. What ideas from ML tool box can be used.
+
+Information bottleneck. Helps analyze Deep nets. Find maximally compressed mapping that preserves infromation as much as possible. Data processing inequality by shannon. Goal of layerwise processing is to discard any infromation whcih is not necessary.
+
+Invaraince vs. equivaraince. Invaraince key idea behind CNNs. 
+
+Example is disentagled representation learing. No general accepted definition of this term exists, but one common example is unding the generative process and do the inference process. Closely related to untagneling in neurosciene.
+
+Group theory, want to caputre a set of symmetry transformations, want to capture this in the representations. For example horizontal and vertical translations and changes in color in a grid world. They affect the state of the world. Assume there is generative process that maps state to map. Goal is to learn a mapping from observation o to representation z, such that f is an equivaraint map (definition of equaivariant map). If we can find such a map f, then our representation is said to be reflective of the underlying symmetry transformations. 
+
+### 04 - Evaluating the merit of a representation
+
+How can we verify that we are on the correct path? Evaluating representations. Representations should adress the follwing:
+
+- Symmery in definition
+- Untangeled 
+- Should be compositional
+- Can implement attention in for examply binary mask
+- Clostering: need metric, can assume it is in a vectorspace
+
+Represention should help with shortcomings
+
+- Data efficiency: Majority of natural task. Color transformation is easily learned by lnear mapping. Research shows that incorporating symmetry does help in supervised task (see paper)
+- Robustness: Mapping f needs to be equivariant. Functional form quite constrained, help it might be more robust to adversarial attacks. Example on slide, CVPR 2020 paper, includes attention
+- Generalization: can be increased if the decision on which action to take can be made without those aspects of representation that are not imporant of to the task. Since our symmetry based representation of Z preserves the important information about the stable course of the world in a format that allows for fast attention attenuation, we quickly adapt the minimal set of informative subspaces available to the decision network when faced with solving diverse tasks. Thus increasing the generalization of such decision networks.
+- Transfoer: Mapping f connects the underlying symmetry transformation to the representation, it should not care about the nature of the intermedia observation. Was shown that the schema networks could transfer its ability to breakout much better than the unstructured deep RL baseline.
+- "Common sense": Least explored area of machine learning, preliminary evidence suggests that our hypothesised representations may support compositional abstract imagination and maybe a solution for grounding many promising discreet or symbol based algorithms. They have concept induction and abstract reasoning.
+
+Currently no algorithm exists that can learn such symmetry equivariant representations in a robust and scalable manner. Aiming for such representations may be a good research direction.
+
+Recap:
+
+Deep learning sucesses may be due to its ability to implicitly learn good representations.
+
+### 05 - Techniques and applications
+
+Three main pillars to acheive outlined goals.
+
+Generative modeling: modeling underlying distribution
+
+Contrastivle losses: classification losses to learn representations that preserve temporal or spatial data
+
+Self-supervison: Information about data modality, images audio. learn representation that preserve data.
+
+Downstream tasks: semi-supervised learning, reinforcement learning, model analysis. First learn from unsupervised data only, then ask questions about the representations learnned. Build downstream tasks to asses what kind of information is in there. How much information about the label is still present, often by building a simple classifier, linear layer. have in mind data efficiency and want to be able to generalize. Can also ask additional questions. First train on imagenet without any label information, then use small percentage to train clasifier to see how well representation are doing. Alowws to compare different representations.
+
+RL: Agents in multiple different environment, or learn from different experience. Tasks that are very hard to learn from online data. Learning disentagled representation can speed things up
+
+Model analysis. Understand what the model is doing, do they satisfy the property. Learning interpretable models, want to see what it is learning before deplyoing it in production.
+
+Keep in mind what we want, discrete and continous representation (face has glasses is binary, haircolor is continuous). Representations adapt with experience, continual learning, RL). Consistency in data should be represented, example a scene, from different angle.
+
+#### **Generative Modeling**
+
+What kind of distribution could have generated our dataset? Main question. Example mixture of two gaussians. Learning probability distributions efficiently has a lot of connections with compressing data. Want representations that are efficient and compressed.
+
+Latent variable models: Mapping from low dimensional to high dimensional space. Being able to model the sampling process, assume generative process looks like that. Assume taht they are generated by very complicated mapping (NN). Inference p(z|x). In practice learn inference and generation together. Don't have access to true distribution of z.
+
+Variational autoencoders. Uses maximum likelihood, can't see p*(x) directly but use Monte Carlo simulation. Challenge is latent variable and train them with MLE, it is given by an integral (describes the integral, what it does). p(z) is a prior. We use a lower bound, ELBO, lower bound on MLE objective. Optimize bound, make it as close as possbile to the real objective. Difference between EM and MLE. For complex models we cannot calculate the posterior exactly, this makes the difference between EM and variational inference. In EM the inequality becomes equality. VAE as close as possible to log probability. First term is likelihood term, encode in latent variable as much information as possible, assign high probability to orogianl x we have seen, only possible if we encoded original information efficiently. Second term, want representation to be close to prior. 
+
+VAE. prior we choose it. Can choose our prior to be disentagled, example gaussian with independent diemnsions. KL will regularize it.
+
+VAE and NN. Both inference and generation model are deep neural networks.
+
+KL term is important for regularizations, to force disentangeled representations. No longer exact bound, but model really wants to learn disentangeled representations. beta-VAE. This is called latent traversal. All six are fixed except for one. (6th and 7th latent variable.) See what changes in the scene if you change one variable. Entangeled is non betaVAE.
+
+Downstream tasks, evaluate how good representations are for transfer learning and generalization. Allows RL learnings to transfer quicker form simulation to reality.
+
+Sequential VAE - ConvDraw, car example, first draw the outline then give more details. Have a recurrent component. Move from high level outline to final detailed  image. Can have posterior distributions that are autoregressive and way more complex, can be closer to true posteriror. Can get closer to the bound.
+
+Layered models - Monet. VAE and segmentation network. beta VAE and attention netowrk to segment objects in an unsupervised way. Masked input after first attention network is inputed to the VAE. Monet and monet in reinforcement learning.
+
+Generative Query Networks (GQN) look at consistency property. Information about how scene would look lke from different angles. Provide data from scene from different angle. Multiple generation steps. Model has to learn to draw from different angle. 
+
+GQN can capture uncertainty. It is able to imagine that there are multiple objects behind a wall. We want representations to encode uncertainty about the world.
+
+GQN in RL: less varaince in learning, and even being able to learn the task and not being able to learn the task at all.
+
+Vector quantized VAEs: learning iscrete latent variables is challenging. start with continuous vector, look into learned table of embedding and look for NN in that table, and the index will give the discrete varialbe. Now we are able to learn with discrete latent spaces. can get very good compression algorithm, but reconstruction are a bit blurry, because we are using probability model.
+
+GAN: (basic structure): GANs can t answer the inference qustion.
+
+BigBiGan can do that, learn to encode by changing the adversarial game. Crucial how discriminator changes. Want to go beyond that. want to match data and latent variables in prior. And invert from latent to other model. (see paper from Donahue). Marginals will be matched, latent variable distributions will be matched as in the VAE case, and we matched the relationship between xhat and x and z to zhat. No use of reconstruction loss. Learn how to reconstruct and.
+
+No pixelbased loss, captures high level information.
+
+GPT: useful for downstream tasks. Use very well tuned neural architecture with large amount of data.
+
+Contrastive larning, completely unsupervsied, removes need for generative model. Use classification loss instead, built from unsupervised data. Done so that the right context is encoded.
+
+Contrastive losses: word2vec. One hot represents no semantic information whatsoever, no relationship between words. But how can we do that? By learning a model which predicts the representation it should expect from past data. Provide positive and negative examples in training, predict next word to expect. Want to test it how? Unsupervised learning in english and spanis. Then learn simple linear mapping from few data points. Is this mapping generalizing? Can we do dictionary translation. 
+
+Conrastive predicitve codeing. Maximize mutial information between data and learnind representations. Learns what we have seen so far. Think of the idea as temporal coherence structure. Can also be used for spatial data such as images, different patches. Do very well when we don't have many labels.
+
+SimCLR another contrastive loss idea. If you transform the image a little bit, then you still want to have same representation after transformation f. Should contain most of the information, but it should not be fully same information. so we add a different mapping g we then obtain a mapping which is the same. Downstream task uses f results to do things. This is shown for images. Have a nice plot where you compare for number of parameters in models.
+
+#### Self supervised learning
+
+Colorful image colorization. Needs no label, and ask model to revert the mapping. Use this again for representation learning. We can do context prediction, learn spatial consistency. Given a patch, which one do you think the other patch is? It only has to do 8 way classification, but it has to understand and learn representations that are useful for semi supervised learning. We can also go and look at sequences, shuffle images and let the model sort the images as in the original sequence. it has not to know how the next image looks neither has to predict it. learn temporal coherence. One example is BERT, leverages tasks that learn local and global structure. Leanrs which words have been masked in a sentence. Given sentence A and sentence B which one will come first? this is long term structure not such as the other task. Also uses bidirectional models as transformer. Put in production as part of google search.
+
+Keep in mind that:
+
+- task desing is important
+- modality
+- context
+- learning generative models is hard, maybe able to get awawy without it
+- Benefits by incorporating changes in neural architectures.
+
+### 06 - Future
+
+- Generative models: powerful posteriors (autoregressive) and better priors (disentanglement)
+- Contrastive learning
+- Self supervised learning: more task design by exploiting information about modality
+- Incorporating changes in neural representations. DL will advance and use these improvements
+- Causality, causal coherence and have the representations that are able to answer these tasks.
+
+### My Highlights
+
+- EM and VAE comparison
 
 ## Episode 11 - Modern Latent
 
