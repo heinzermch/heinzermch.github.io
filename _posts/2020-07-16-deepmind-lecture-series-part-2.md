@@ -460,6 +460,169 @@ Keep in mind that:
 
 - EM and VAE comparison
 
-## Episode 11 - Modern Latent
+## Episode 11 - Modern Latent Variable Models and Variational Inference
+
+### 01 - Generative Modeling
+
+What are they? think of them as mechanisms of generating more data points. Key distinction, modeling distributions are really high dimensional, not like classification. Often there is no input. Has been seen as part of unsupervised learning. Many type of models, can handle any kind of data
+
+Uses of genrative models
+
+- From statistis, density estimatiion and outlier detection, given data point estimate its likelihood, fraud detection is possbile
+- Data compression, duality between these two areas, can use arithmetic coding to do data compressor
+- Mappring rom one domain to another. Sentences in different languages, multiple translations possible
+- Model based reinfrocement learning, model acts as probabilitc siulato of environment, algorithms can use simulator to plan optimal seuence of acttions
+- Representation learning, condense obeservations into low dimesnional irepresnetation which caputre the essence, might be more useful for downstream taks.
+- Understanding the data (also from statistics), laten variabels will be interpretable, or will have real world significance.
+
+Progress in generative models, samples from particular years. 2014 mnist, 2015
+
+2019 model much higher dimensional images
+
+Types of genrative models
+
+- Autoregressive models: language modeling, RNN or transformers
+- Latent variable models
+  - Tractable
+  - Intractable
+- Implici models: GANs and their variants
+
+Autoregressive models. Solve the problem. Can use off teh shelf classifier technology. No random sampling at training time. Sampling from such models is sequential and slow, can not parallelize, better on local sructure than global structure.
+
+Latent variable models: also likelihood based, different approach to joint distribution. Trained useing ML or some approximation to it. Powerful and well understood, easy to incorporate prior knowledge and structure, fast generation. Conceptually complex, require understanding inference, opposing of generation. Inference is intractable, either restrict the models we can use or introduce additional complexity to use approximation
+
+GANs: Not likelihood based, implicit models, just give you samples. Trained using adversarial training rather than ML, train a classifier, by far the best ones to create images. Provide fast generation, simple a forward pass in NN. Don't give us ability to assign probabilites to obesrvation, no outlier or lossless compression, suffer from mode collapse, models only subset of data sometimes, training can be unstable.
+
+### 02 - Latent Variable Models & Inference
+
+Latent variable models, defines. prior and likelihood. z can be vector or tensor, makes no difference. model is completely specified by joint likelihood. Two observations are of interest to us, marginal liqkelihood and posterior. plausible values which could have generated x. Generate by sampling from z, then sample x from p(x|z). Much of the lecture is about inference.
+
+Inference
+
+compute posterior given observation. need to calculate p(x) by doing the integral, integrate over z. 
+
+Inference is the inverse of generation, in a specific formal sense. two ways to generate observations. generate paris in two ways. Disribution of these cases is exactly the same as
+
+$$p(x|z)p(z) = p(x,z) = p(z|x)p(x)$$
+
+Inference probabilitc inverse of generation.
+
+Why is inference important? Explaining obsercations. Learning, comes up naturally in training, subproblem which needs to be solved.
+
+Inference for a mixture of gaussians (simplest model). compute posterior ditsribution in linear time number of latent variable values.
+
+ML learning: dominant estimation principle for probabilitc models. choose those parameters that make training data most probable. For latent variable models we can't solve this in closed form, either use gradient descent or expecation maximization
+
+Look at gradient of the marginal log likelihood. Look at transition more closely(not that clear). Need to compute the posterior distribution to compute the graident. this means inference performs credit assignments among latent configurations for given observations.
+
+Exact inference is hard in general. Integrating over high dimensional space of a non-linear function, analytical and numerical integration is not an option. For discrete cases summing over finaite number of values, but exponentially many latent configurations, curse of dimensionality, never be able to compute sum exactly. Exceptions: mixture models, linear-gaussian modeles, all induced distributions are gaussian. Inverteble models are special because they are powerful and allow for exact inference through constraints on their structure.
+
+How to avoid intractable inference
+
+1. Designing models so that they are tractable, gets us less expressive models
+2. Using approximate inference, more flexible, more expressive, will end up with intractable model but the aprox inference allows for optimization
+
+
+
+### 03 - Invertible Models & Exact Inference
+
+Invertible models / normalizing flows. High expressive powers combined with tractablility. All the parameters are in the invertible function.
+
+Invertible model, need prior and then use invertible transformable . All parameters are in f, gives us one to one correspondence between latent and observations. Inference is fully deterministic
+
+How do to compute the marginal likelihood? Need to relate prioer and, can apply change of varaibles. Would like to get rid of z by replacing it with inverse of f(x)
+
+Indepenen component Analysis, simplest and oldest inverible model. Solve cocktail party problem, n microphones in room and n people, recover sources z, prior can not be gaussian because they are rotaitnoally symmetric in high dimensions, need heavy tailed distributions.
+
+Constructing general invertible models Chain a bunch of invertible transformations together, don't need f to be analytically invertiable, as long as the algorithm is efficinet. List of invertible builidng blocks
+
+Limiations of invertible models. Limitations
+
+- Dimensionality of latent space and data space has to be the same
+- Latent space has to be continuous, although they are discrete flows research
+- Hard to model discrete data
+- Expressiveness by number of parameters is not great, needs lot of memory
+- Hard to incorporate structure because we need invertibility
+
+They do make good building blocks for larger latent models.
+
+### 04 - Variational Inference
+
+The appeal of intractable models. Quote from David Blei, often we go with the wrong anwer to the right question, approximate inference.
+
+Example: ICA variations, how quick we can go intractable. Supoose we add some noise, makes model intractable. or change the number of dimensions.
+
+Approximate inference: Markov chain monte carlo, generate samples from exact posterior using markov chain. Very general method, exact in limit if we have infinite computation, convergence is hard to diagnose.
+
+Apprioximate inference: variational inference. Approximate the posrior wit a tractable distribution, fully factorized or autoregressive. Much more efficient than Monte Carlo, cannot trade computation for greater accuracy. Can theoretically quantify approximation error.
+
+Variational Inference. Why variation? Optimizing over a space of distributions, we are approximating unknown posterior distribution, we will approximate the varational posterior. Often use fully facorized distribution.
+
+Training with variational inference. Allows us to train models by approximating marginal log likelihood which is intractable, but by introuducing alternative objectibe which is lower bound we can optimize wr.t. lower bound.
+
+How to obbtain the marginal log-likelihood. Implement formula here
+
+Will focus on ELBO. IWAE allows for trade off between computation and apporximation.
+
+Review KL Divergence.
+
+Fitting the variational posterior. 
+
+Training the model. What happens whe we update the parameters?
+
+Two ways of decereasing the variational gap. Can update the variational paramers, can update the model parameters. Can spend some of model capcaity to approximate posterior instead of approximate data. Should use most expressive varitional posterior we can to diminish that effect.
+
+Variational pruning. Model refuses to use some hidden variables. When you prune out variables it becomes easier to perform variational inference, extra pressure on model to be simpler. Also known as posterior collapse, good or bad thing? Can be good choosing dimensionality of latent space based on data. Or bad if takesaway some of the freedom to overfit to data. Model can refuse to use extra varaibles if we make latent space really big, can lead to suboptimal results even though we give enough options.
+
+Choosing the form of the variational posterior. Default option is fully factorized distribution, called mean filed apprximation from physiscs.
+
+More expressive posteriors:
+
+- Mixture distrbution
+- Gaussian with non-diagonal covatiance
+- autoregressive
+- flow-based, use an invertible model which is tractable
+
+Ultimately a trade-off between quality and computational cost.
+
+Amortized variational inference. Posteriro distrubiton is different for each observation x. Do inference network, functional approximation. Phi is the network parameters, populariased by variational autoencoders. Allows us to easily scale up variational inference. Variational parameters are jointly trained.
+
+Variational vs. exact inference. Can train intractable models in efficient way, inference is fast compared to MCMC. But we can give up some model capacity and lead to suboptimal performance.
+
+### 05 - Gradient Estimation in VI
+
+Maximizing the ELBO. ELBO is an expectation. Classical was expectation with closed form, objective function was analytically tractable. Models had to be simple, and variational posteriors need to be fully factorized. Applicable only to a small set of models. Here we use monte carlo sampling which allows us to handle any kind of latent variable model.
+
+Graident w.r.t. the model parameters. Easy case, move gradient inside expectation. In practice only one sample can be enough to train model. Noise in gradiens can be bad thing, we need to use low learning rate, can use more samples for hihger learniner rate.
+
+Graient wr.r.t. the vriational parameters. Cant take gradient inside the expectation. Is reasearch problem
+
+Gradients of expctations.
+
+- REINFORCE / likelihood-ratio estimator. Very geeral but high variance
+- Reparametricazaton, pathwise estimator. Less general, need continuous latent variables, needs f(z) to be differentiable. Gives you fairly low variance
+
+Reparametrization trick. Transformation of samples from fixed distribution epslion, to get z. Example with reparametrizing gaussian variable.
+
+Reparametrizing distributions. Not every distribution can be reparametrized in a differntiable way. Can not do that with discrete distribution, can do implicit reparametrization. Modern frameworks such as TensorFlow and Pytorch support reparametrization for many continous distribution
+
+### 06 - Variational Autoencoders
+
+Most successfull application of variational inference in the last years. Generative model swith gontiuous latent variables. Was a breaktrhough in 2014, made them very popular. Highly scalable and very expressive.
+
+Variational autoencoders. Decoder / Likelihood. Variational posterior / encoder
+
+ELBO decomposition for VAEs, slightly different write up as before. second term often computed in closed form. First term measures how well to construct. Second term ascts as regularizes, pushing variational posterior towards prior. Computed analytically. 
+
+The VAE framework, model with continous latent variables and reparametrizaton trick and amortized variational inference.
+
+VAE have been improved in many ways.
+
+Conclusion
+
+- Two modern approaches, based on likelihood
+- Different tradeows between flexibility/power and ease of infernce
+- Models can be combined.
+- Many substential contributions to be made
 
 ## Episode 12 - Responsible
