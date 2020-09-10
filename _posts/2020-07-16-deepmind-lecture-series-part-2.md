@@ -625,4 +625,149 @@ Conclusion
 - Models can be combined.
 - Many substential contributions to be made
 
-## Episode 12 - Responsible
+## Episode 12 - Responsible Innovation & Artificial Intelligence
+
+### 01 - Motivation
+
+The power and potential of artifiical intelligence
+
+Risks
+
+Failure modes of machine learning. Intriguing properties of neural networks paper. Adversarial attacks basically
+
+Studies on GPT-2 has gender bias
+
+What are our responsibilities as machine learning practicioners? Open questions We are responsible for enuring our neural networks satsify. Have quality control on deployment
+
+How can we make sure algorithms are safe for deployment? Satify law of physics. Robust to feature changes that are irrelevant. Uncertain if it has images out of distribution.
+
+### 02 - Specification Driven ML
+
+What is specification driven macine learning? Limited data model can learn spurious prediction. How can we enforce these specifications
+
+### 03 - Adversarial and Verification Algorithms
+
+Robustness to adversarial perturbations. Important for applications which have real adversaries in the mix. Unchanged under an additive perturbations
+
+Adversarial robustness specification. Function with one hot encoded vector. delta denotes perturbation. We want our nn output to be correct under perturbations. Second line want this to be true under all perturbations under a specific norm.
+
+Adversarial Training. Similar to standard image classification training. Adversarial training is similar but with data augmentation step, want this to be labelled correctly as wel. But we can not iterate over all these perturpbations. So we want to find the worst case.
+
+Want to maximize the difference between the prediction and the class. New objective, now it is a min max problem. Want to find the max for the perturbations, now we want to minimize in the outer loop. Adversarial training is significantly more expensive than standard classification training.
+
+#### 3.1 Advesarial Evaluation: Finding the worst case
+
+Adversarial Evaluation / Attacks, worst case accuracy is known as adversarial accuracy. Complications, find maximum exactly is NP hard. Constrained optimization problem because delta is constrained in set B(epsilon). Cant find maximum exactly but can do gradient ascent to approximate it. Hence to projected gradient ascent, yellow box, project back onto limits of it.
+
+Update step: delta is projection of gradient ascent step, definition of proj(delta)
+
+Fast Gradient Sign method (iterated). Can replace the gradient with any alterations. Explore parameters to have strongest evaluation possible.
+
+Strenghts of Advesarial evaluation
+
+- Adversrial acuracy is dependen on your choice of evaluation. The strong the evaluation is the lower the accuracy will be
+- Should always aim for lowest adversarial accuracy, closest to the true adversarial 
+- Heuristics
+  - Steps: The more steps the closer you are on maximizing objective
+  - Number of random initialistions of perturbations, start from a number of different initializations. Graident obfuscation??
+  - The optimizer is important, try a few different ones to have lowest
+  - Use black box adveraarial evaluation. Assume you are not given the weights of the network, the opposite is the whitebox
+
+Danges of weak adversarial evauation. Two papers in 2018, weak evalation can give you false sense of security, need adversarial training to be robust in first paper.
+
+Stronger adversarial evaluation gives better evaluation progress. Another paper. Reported numbers and the updated evaluation
+
+#### 3.2 Gradient Obfuscation
+
+What is it? Look at objective has outer minimization and inner maximization step, focus on inner maximization. Conundrum, more steps we take, better accuracy but also more expensive. How to make it cheaper? Fewer steps of gradient ascent, if you take to few steps network learns to cheat by making high nonlinear loss surface. Example for gradient obfuscated surface If you do adversarial training correctly, you expected a much smoother loss surface, on the right, compared to what you get on the left.
+
+#### 3.3 Verification Algorithms
+
+Profable guarantee that no algorithm will ever change your specification.
+
+Verification algorithms: Complete, exhaustive proof or counter example, which are very difficult to scale. Incomplete verification algorithms, a proof can not always be found, even if NN satisfied the specification, they give you a lower bound on specification satisifaction.
+
+Verification fo specifications, y = f(x). Make two assumptions, input comes from bounded set denoted by X, and NN consists of linear and activation layers. Get output set captial Y, does it lie on one side of decision boundary? NP hard problem to find propagation the boundaries.
+
+Incomplete findes boundaries which are easier to propagte, but makes the result less precise. If approximation is too lose, then the incomplete verification can not mean very much sometimes. Example of Y satisifes the specification, and if overapproximated set spans both sides of decision boundary we can not say much.
+
+Graph: Difference between empirical and incomplete verification. X size of input set, y amount of specification viaolation. Solid line is upper bound on  violation, dotted line is lower bound. True value is in between, gap needs to be small to make a conclusion.
+
+Other specifications. 
+
+### 04 - Ethics and Technology
+
+What is ethics and why does it matter? How does it connect with machine learning
+
+Ethics is a field of inquery which is concerned with identifiying the right course of action with what we ought to do. Converned with equal value and imporance of human life and with understandig what it means to live well in a way that does not harm other human beings, sentient life or the natural world. Challenges can arrise in everyday life but also in machine learning research. Technologiests and reasearchers are making ethical decisions all the time.
+
+Start with training data, data is not only a resource but has ethical properties. For example data been collected with consent of those in the data? Celecbrities or images taken from image. Representation, is it diverse or overfocued on certain groups of people? How is the label collected and curated, may contain predjuices.
+
+Algorithmic bias. Software used to make decision has often the bias of its creators. Example criminal justice where a system discriminated against black people. Another issue with job search tools, preferring men over women by significant ratio. Image recontion works less well for minorities. Medical Diagnosis works less well for non-binary people?
+
+Power and responsibility. Have significant impact on the lives of others. Responsibility to what? What can we do when building ML systems?
+
+Science and Value. What does it mean to do machine learning well? Research is not value neutral, social practice shared norms change over time. 
+
+Responsible innovation. Appropriate standards and norms for research. Unique challenge. Good science is algined with democratic processes and based upon the alginment with social good. What precisely are researchers responsible for?
+
+### 05 - Principles and Processes
+
+The responsibility of technologists. Intrinsic features. Extrinsic factors. Both elements are necessary
+
+The AI Ethics Landscape.
+
+Key Values,
+
+- Fairness privacy and transparency non malfesence
+- Individual rights, informed consetn and equal recongiton before the law
+- Everyone should benefit from science. All of humanity should share the progress
+
+How do we move to clear processes from these abstract ideas? How do you balance different ethical principles? Lot of research is highly theoretical.
+
+#### A five step process
+
+1. Does the technology have socially beneficial uses? Is there are a reason to develop it? If it is unclear it is a red flag. 
+   1. Well-being
+   2. Autonomy - empower people, useful information
+   3. Justice - produce fairer outcomes
+   4. Public institutions - health care or education, global challenges
+   5. Global Challenges - Climate warming
+2. Risk of direct or indirect harm? Most technologies have some risk, map them out
+   1. Undermine health or well-being or human dignity - mental health
+   2. Restrict freedom or autonomy - addictive content
+   3. Lead to unfair treatment or outcomes - algorithmic bias
+   4. Harm public institutions or civic culture
+   5. Infringe on human rights
+3. Is it possible to mitigate these risks? Are there steps in place to do that
+   1. Control the release of technologie or the flow of information - fall in the hands of wrong people
+   2. Adopt technical solutions and countermeasures
+   3. Help the public understand new technologies
+   4. Seek out policy solutions and legal frameworks to contain the risk
+4. Evaluate stage, violate a red line? Moral constraint
+   1. Consent - infringe on peoples personal space without consent
+   2. Weapons - lethal autonomous weapns, delegate respnsiblity to machines
+   3. Surveillance - corroding effect on public trust
+   4. International law and human rights 
+5. If we haven't hit any constraint, does the benefit outweigh the risk? Also consider other options to us
+
+Two final tests
+
+1. Have you thought about all the people affected by your decisions. Have you sought out their input? They have a right to be included
+2. Might you have reson to regret it later? Someone in the future, even our children might ask us why we acted the way we did? Technology used to violate human rights. Act in ways to minimize the future regret.
+
+
+
+### 05 - The path ahead
+
+Key ideas. Those who design and evelop technologies ahve a responsiblity to think about how they will be used.
+
+There are concrete steps and process taht we can put in place to make sure this responsiblity is succesfully discharged
+
+We are responsbile for what we can reasonably forsee and shoudl take the steps to bring about psotive outcomes. Even if it means incurring certain costs.
+
+New directions
+
+- What is the path ahead? Focus on AI saftey fairness and accountability. 
+- New norms and standards what it means to do research well, for the right reasons and in the right way.
+- Practice, emergence of new practices . Model cards of intended usage of models. Bias bounties. 
