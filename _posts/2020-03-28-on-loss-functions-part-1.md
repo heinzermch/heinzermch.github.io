@@ -8,15 +8,16 @@ categories: DeepLearning CrossEntropy Optimization Loss Distance LinearRegressio
 comments: yes
 published: true
 ---
-When looking at a Deep Learning related project or paper, there are four fundamental parts for me: data, network architecture, optimization method and loss function. As the title suggests, here will focus on the last part. Loss functions are deeply tied to the task one is trying to solve, and are often used as measures of progress during training. In this post we are going to see where they come from and why we using the ones we do. This first part will cover losses for the tasks of regression and classification.
+When looking at a Deep Learning related project or paper, there are four fundamental parts for me: data, network architecture, optimization method and loss function. As the title suggests, here will focus on the last part. Loss functions are deeply tied to the task one is trying to solve, and are often used as measures of progress during training. In this post series we are going to see where they come from and why we using the ones we do. This first part will cover losses for the tasks of regression and classification.
 
-## Basic concepts and notation
+## Basic Concepts and Notation
 
 Before we start, let us quickly repeat some basic concepts and their notation. Readers familiar with the topic may skip this section. This is not meant to be an introduction to probability theory or other mathematical concepts, only a quick refresh of what we will need later on.
 
-- **Definition**: If a term on the left hand side of the equation is defined as as the right hand side term, then $$:=$$ will be used. This is similar to setting a variable in programming. As an example we can set $$g(x)$$ to be $$x^2$$ by writing $$g(x) := x^2$$. In mathematics, when writing simply $$=$$ means that the left side implies the right (denoted by $$\Rightarrow$$) and right side the left (denoted by $$\Leftarrow$$), at the same time.
+- **Definition**: If a term on the left hand side of the equation is defined as as the right hand side term, then $$:=$$ will be used. This is similar to setting a variable in programming. As an example we can set $$g(x)$$ to be $$x^2$$ by writing $$g(x) := x^2$$. In mathematics, when writing simply $$=$$ means that the left side implies the right (denoted by $$\Rightarrow$$) and right side the left (denoted by $$\Leftarrow$$) at the same time.
 
-- **Logarithm**: $$\log : (0,\infty) \longrightarrow (-\infty, \infty)$$. One of the basic function in calculus, known as the inverse of the exponential function $$ x = \exp(\log(x)) $$. It has some other properties which we will need later on:
+- **Logarithm**: $$\log : (0,\infty) \longrightarrow (-\infty, \infty)$$. One of the basic function in calculus, known as the inverse of the exponential function $$ x = \exp(\log(x)) $$. It has some properties which we will need later on:
+  
   - $$ \log(xy) = \log(x) + \log(y)$$ and $$\log\big(\frac{x}{y}\big) = \log(x) - log(y)$$
   - For two bases $$b, k$$, we have that $$ \log_b(x) = \frac{\log_k(x)}{\log_k(b)} = C \cdot log_k(x) $$ where $$C = \frac{1}{\log_k(b)}$$ is a constant because it does not depend on $$x$$. This means that a change of basis in the log is only a multiplication by a constant.
   - If not mentioned otherwise, we will assume that $$b=e$$, the natural logarithm.
@@ -24,7 +25,7 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
     ![Plot of log(x) and -log(x)](/assets/images/loss_functions_part_1/log_plot.png)
     There are three cases which are worth noting:
     - Log goes to minus infinity when approaching zero: $$\lim_{x \longrightarrow 0 } \log(x) = -\infty$$
-    - one is the only value for which log is equal to zero: $$\log(1) = 0 $$
+    - $$1$$ is the only value for which log is equal to zero: $$\log(1) = 0 $$
     - Even if the graph looks like its flattening, it does actually go to infinity:$$ \lim_{x \longrightarrow \infty} \log(x) = \infty $$
   
 - **Sigmoid**: $$ \sigma : (-\infty,\infty) \longrightarrow (0,1)$$, is defined as $$ \sigma(x) := \frac{1}{1+\exp(-x)} = \frac{\exp(x)}{1+\exp(x)}$$. It has the property that it maps any value to the open interval $$(0,1)$$, which is very useful if we want to extract a probability from a model.
@@ -33,10 +34,11 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
   - Again three cases worth noting:
     - The left limit is 0: $$ \sigma(x)_{x \longrightarrow -\infty } = 0 $$
     - The right limit is 1: $$ \sigma(x)_{x \longrightarrow \infty } = 1 $$
-    - At zero we are in the middle of the limits: $$ \sigma(0) = 0.5$$
+    - At zero we are in the middle of the range: $$ \sigma(0) = 0.5$$
   - The derivative of the sigmoid is $$\frac{\partial \sigma(x)}{\partial x} =  \sigma(x) (1-\sigma(x))$$
   
-- **Softplus**: $$ \zeta : (-\infty,\infty) \longrightarrow (0,\infty)$$ is defined as $$ \zeta(x) := \log(1+\exp(x))$$ the name comes from its close relationship with the function $$x^+ = \max(0,x)$$, which deep learning practitioners know as rectified linear unit (ReLU). It is essentially a softer version of $$x^+$$ which becomes apparent when we draw them. It will also frequently show up when we manipulate sigmoid functions in connection with Maximum Likelihood.
+- **Softplus**: $$ \zeta : (-\infty,\infty) \longrightarrow (0,\infty)$$ is defined as $$ \zeta(x) := \log(1+\exp(x))$$ the name comes from its close relationship with the function $$x^+ = \max(0,x)$$, which deep learning practitioners know as rectified linear unit (ReLU). It is a softer version of $$x^+$$ which becomes apparent when we draw them. It will frequently show up when we manipulate sigmoid functions in connection with Maximum Likelihood.
+  
   - This plot shows the difference between softplus and ReLU
     ![Plot of softplus and ReLU](/assets/images/loss_functions_part_1/softplus_relu_plot.png)
   - Some other noteworthy properties:
@@ -45,10 +47,18 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
   
 - **Random Variable**: A variable whose values depend on the outcomes of a random phenomenon, we usually denote it by $$X$$ (upper case) and an outcome by $$x$$ (lower case). An example would be a random variable X which represents a coin throw, it can take value zero for head or one for tail.
 
-- **Probability Distribution**: A function $$p$$ associated with a random variable $$X$$, it will tell us how likely an outcome $$x \in X$$ is. In the case of a fair coin, we will have $$p_X(0) = p_X(1) = \frac{1}{2} $$. We usually omit the subscript $$p_X$$ and only write $$p$$ for simplicity.
-  If we have an unnormalized probability distribution we will denote it with a hat: $$\hat{P}$$. An unnormalized probability distribution does not need to sum up to one.
+- **Probability Distribution**: A function $$p$$ associated with a random variable $$X$$, it will tell us how likely an outcome $$x \in X$$ is. In the case of a fair coin, we will have
   
-- **Expectation**: For a random variable $$X$$ the expectation is defined as $$ E(X) := \sum_{x \in X} p(x)  x$$. A weighted average of all the outcomes of a random variable (weighted by the probability). The expectation of the coin throw example is $$E(X) = 0 \cdot p(0) + 1 \cdot p(1) = 0 \cdot \frac{1}{2} + 1 \cdot \frac{1}{2} = \frac{1}{2}$$.
+  $$P(X=0) = p_X(0) = p_X(1) = P(X=1) = \frac{1}{2} $$
+  
+  We usually omit the subscript $$p_X$$ and only write $$p$$ for simplicity.
+  If we have an unnormalized probability distribution we will denote it with a hat: $$\hat{P}$$. An unnormalized probability distribution does not need to sum up (in the discrete case) or integrate (continuous case) to one.
+  
+- **Expectation**: For a random variable $$X$$ the expectation is defined as 
+
+  $$ E(X) := \sum_{x \in X} p(x)  x$$
+
+  A weighted average of all the outcomes of a random variable (weighted by the probability). The expectation of the coin throw example is $$E(X) = 0 \cdot p(0) + 1 \cdot p(1) = 0 \cdot \frac{1}{2} + 1 \cdot \frac{1}{2} = \frac{1}{2}$$.
 
 - **(Strictly) Increasing transformation**: a function $$ f : \mathbb{R} \longrightarrow \mathbb{R}$$ is a (strictly) increasing transformation if for all $$x, y \in \mathbb{R}$$ with $$ x \leq y$$ ($$x < y$$) we have that $$f(x) \leq f(y)$$ ($$f(x) < f(y)$$). These transformations have the property that we can apply them without changing the result whenever we care only about the ordering of elements, for example when minimizing a function.
 
@@ -62,11 +72,11 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
 
   Which is beneficial when doing numerical optimization.
 
-# Notions of distance
+# Notions of Distance
 
 ## Distance
 
-At the very bottom of loss functions are how we measure distance. In our daily life we switch between different measures of distance effortlessly. For example one could ask how far away are you from the next airport? You might measure this in time it takes to drive there, or the distance to the location in kilometers (or miles). If you chose to measure it in the latter way, you are most likely using Euclidean distance, but more on this later. In Mathematics there is a more general notion of distance on a set $$X$$ ($$X$$ could be anything, numbers, apples, oranges, mathematical objects). A distance $$d$$ on the set $$X$$ is a function
+At the very bottom of loss functions are how we measure distances. In our daily life we switch between different measures of distance effortlessly. For example one could ask how far away are you from the next airport? You might measure this in time it takes to drive there, or the distance to the location in kilometers (or miles). If you chose to measure it in the latter way, you are most likely using Euclidean distance, but more on this later. In Mathematics there is a more general notion of distance on a set $$X$$ ($$X$$ could be anything, numbers, apples, oranges, mathematical objects). A distance $$d$$ on the set $$X$$ is a function
 
 $$d : X \times X \longrightarrow \mathbb{R}$$
 
@@ -79,9 +89,9 @@ $$\begin{align*}
 4. \; d(x,y) &\leq d(x,z) + d(z,y) & \forall x,y,z \in X
 \end{align*}$$
 
-These four conditions have straightforward interpretations. The first one tells us that a distance can never be negative. The second one says if the distance between two elements is zero, then they must be the same. The third one is symmetry, going from A to B is the same as going from B to A. The last one is called triangle inequality, it can never be faster to go from A to C to B than going from A to B directly.
+These four conditions have straightforward interpretations. The first one tells us that a distance can never be negative. The second one says if the distance between two elements is zero, then they must be the same. The third one is symmetry, going from A to B is the same as going from B to A. The last one is called the triangle inequality, it can never be faster to go from A to C to B than going from A to B directly.
 
-### Euclidean distance
+### Euclidean Distance
 
 The most well known example of a distance would be the Euclidean distance. In its general form the Euclidean distance between two n-dimensional real vectors $$x$$ and $$y$$, $$x,y \in \mathbb{R}^n $$, is defined as follows:
 
@@ -91,17 +101,18 @@ It is also often called the L2 norm, and denoted by $$\mid\mid \cdot \mid\mid_2$
 
 $$d_E(x,y) = \sqrt{(x_1 - y_1)^2 + (x_2-y_2)^2}$$
 
-### L2 norm and linear regression
+### L2 Norm and Linear Regression
 
-The L2 norm is also widely used in machine learning, for example in linear regression. Remember that in linear regression we have a data matrix $$X \in \mathbb{R}^{n \times m}$$ ($$n$$ entries for $$m$$ different variables), $$n$$ labels or targets $$y \in \mathbb{R}^n$$ and a parameter vector $$\beta \in \mathbb{R}^m$$ which we are trying to find such that $$y = X \beta$$. However once we have $$n > m$$, or more data than variables, there is no unique solution anymore. Hence we try to get as "as close as possible" to that state. And how do we measure closeness? By the squared L2 norm/Euclidean distance! We try to minimize
+The L2 norm is also widely used in machine learning, for example in linear regression. Remember that in linear regression we have a data matrix $$X \in \mathbb{R}^{n \times m}$$ ($$n$$ entries for $$m$$ different variables), $$n$$ labels or targets $$y \in \mathbb{R}^n$$ and a parameter vector $$\beta \in \mathbb{R}^m$$ which we are trying to fit such that $$y = X \beta$$. However once we have $$n > m$$, or more data than variables, there is no unique solution anymore. Hence we try to get as "as close as possible" to that state. And how do we measure closeness? By the squared L2 norm/Euclidean distance! We try to minimize
 
 $$ d_E(X\beta, y)^2 = \: \mid \mid X \beta - y\mid \mid^2_2$$
 
 Notice that we are trying to minimize the square of the Euclidean distance, this will not change the minimization result because it is a strictly increasing transformation. This distance measure has the advantage that we can easily calculate the optimal values for $$\beta$$ by taking the partial derivative with respect to $$\beta$$ 
 
 $$\begin{align*} 
- \frac{\partial d_E(X \beta, y)^2}{\partial \beta} &=  \frac{\partial((X\beta y)^T(X\beta -y))}{\partial \beta}\\ 
-  &= \frac{\partial(\beta^TX^TX\beta - \beta^TX^Ty-y^TX\beta -y^Ty)}{\partial \beta} \\
+ \frac{\partial d_E(X \beta, y)^2}{\partial \beta} &=  \frac{\partial((X\beta y)^T(X\beta -y))}{\partial \beta}\\   
+&= \frac{\partial(\beta^TX^TX\beta - \beta^TX^Ty-y^TX\beta -y^Ty)}{\partial \beta} \\  
+&= \frac{\partial \beta^TX^TX\beta}{\partial \beta} - \frac{\partial \beta^TX^Ty}{\partial \beta} - \frac{\partial y^TX\beta}{\partial \beta} -\frac{\partial  y^Ty}{\partial \beta} \\
  &= 2X^TX\beta -X^Ty  -y^TX - 0 \\
 &= 2X^TX\beta -2X^Ty
 \end{align*}$$
@@ -135,13 +146,13 @@ We can see that we only require the first two conditions from the definition of 
 
 ### Kullback-Leibler Divergence
 
-The Kullback-Leibler divergence or KL-divergence is often used to compare two probability distributions $$p,q \in S$$. Remember that $$p, q$$ are defined on the random variable $$X$$, and $$x \in X$$ denotes a single event. For example if $$X$$ is all the possible outcomes of a dice throw, then $$x$$ could be the event that 6 ends up on top. A probability distribution $$p$$ assigns a probability to each event in $$x \in X$$, in the example of a fair dice we would have $$p(x) = \frac{1}{6}$$.
+The Kullback-Leibler divergence or KL-divergence is often used to compare two probability distributions $$p,q \in S$$. Remember that $$p, q$$ are defined on the random variable $$X$$, and $$x \in X$$ denotes a single event. For example if $$X$$ is all the possible outcomes of a dice throw, then $$x$$ could be the event that 6 ends up on top. A probability distribution $$p$$ assigns a probability to each event in $$x \in X$$, in the example of a fair dice we would have $$p(x)= \frac{1}{6} \quad \forall x \in \lbrace 1,2,3,4,5,6\rbrace$$.
 
 The KL-divergence of two probability distributions $$p$$ and $$q$$ is defined as
 
 $$D_{KL}(p \mid\mid q) := \sum_{x \in X} p(x) \log\bigg(\frac{p(x)}{q(x)}\bigg) = - \sum_{x \in X} p(x) \log\bigg(\frac{q(x)}{p(x)}\bigg).$$
 
-In the third term we simply switched the order of $$p$$ and $$q$$ to take out a minus sign, this form of the KL-Divergence will show up later. Note that we can view the KL-divergence as the expectation of the logarithmic difference between $$p$$ and $$q$$. This is because of
+In the third term we simply switched the order of $$p$$ and $$q$$ to take out a minus sign, this form of the KL-Divergence will show up later. Note that we can view the KL-divergence as the expectation of the log difference between $$p$$ and $$q$$. This is because of
 
 $$\begin{align*} 
  D_{KL}(p \mid\mid q) &=  \sum_{x \in X} p(x) \log\bigg(\frac{p(x)}{q(x)}\bigg)\\ 
@@ -157,13 +168,13 @@ The self-information of an event $$x \in X$$ in a probability distribution $$p$$
 
 $$I(x) = - \log(p(x))$$
 
-For $$p$$ a probability distribution on a random variable $$X$$, the entropy $$H$$ of $$p$$ is defined as
+For a probability $$p$$ distribution on a random variable $$X$$, the entropy $$H$$ of $$p$$ is defined as
 
 $$H_b(p) := -\sum_{x \in X} p(x) \log_b(p(x)) = E(I(X))$$
 
-where $$b$$ is the base of the logarithm which is used to choose the units of information. If $$b=2$$ then the unit of information is bits, if $$b=e$$ then the unit is nats. However changing the base will only rescale entropy, it will not change the order of different distributions, i.e. if $$H_2(p) > H_2(q)$$ then $$H_e(p) > H_e(q)$$ for two probability distributions $$p, q$$. 
+where $$b$$ is the base of the logarithm, it is used to choose the unit of information. If $$b=2$$, then the unit of information is bits, for $$b=e$$ the unit is nats. However changing the base will only rescale entropy, it will not change the order of different distributions, i.e. if $$H_2(p) > H_2(q)$$ then $$H_e(p) > H_e(q)$$ for two probability distributions $$p, q$$. 
 
-The term on the right hand side shows an interpretation of the entropy, it can be seen as the expected amount of information from an event drawn from distribution $$p$$. It allows us to quantify the uncertainty or information in a probability distribution. The entropy is maximal for a uniform distribution. Note that the entropy is defined on a single probability distribution and does not allow for a direct comparison, this will be the next step. Now we have all the tools necessary to define cross-entropy.
+The term on the right hand side shows an interpretation of the entropy, it can be seen as the expected amount of information from an event drawn from distribution $$p$$. It allows us to quantify the uncertainty or information in a probability distribution. The entropy is maximal for a uniform distribution. Note that the entropy is defined on a single probability distribution and does not allow for a direct comparison, this will be the next step as we now have all the tools necessary to define cross-entropy.
 
 ### Cross-Entropy
 
@@ -171,7 +182,7 @@ The cross-entropy between two probability distributions $$p$$ an $$q$$ is define
 
 $$H(p,q) := H(p) + D_{KL}( p \mid \mid q) $$
 
-This tells us cross-entropy is the sum of the entropy of the target variable and the penalty which we incur by approximating the true distribution $$p$$ with the distribution $$q$$. The terms can be simplified:
+Cross-entropy is the sum of the entropy of the target variable and the penalty which we incur by approximating the true distribution $$p$$ with the distribution $$q$$. The terms can be simplified:
 
 $$\begin{align*} 
  H(p,q) &=  H(p) + D_{KL}( p \mid \mid q) \\ 
@@ -181,20 +192,20 @@ $$\begin{align*}
 &= - \sum_{x \in X} p(x) \log(q(x))
 \end{align*}$$
 
-In words it is the information of events by $$q$$ weighted by distribution $$p$$. How does cross-entropy compare to KL-divergence? In terms of information theory, KL-divergence is sometimes also called relative entropy, the term becomes more meaningful when we look a the following two statements:
+In words it is the information of events in $$q$$ weighted by $$p$$. How does cross-entropy compare to KL-divergence? In terms of information theory, KL-divergence is sometimes also called relative entropy, the term becomes more meaningful when we look a the following two statements:
 
-- Cross-Entropy: Average number of total bits to represent an event from $$q$$ instead of $$p$$.
-- Relative-Entropy: Average number of extra bits to represent an event from $$q$$ instead of $$p$$.
+- Cross-Entropy: Average number of **total** bits to represent an event from $$q$$ instead of $$p$$.
+- Relative-Entropy: Average number of **extra** bits to represent an event from $$q$$ instead of $$p$$.
 
 Moreover we can see that on the right hand side of the equation for cross-entropy, only the KL-divergence depends on $$q$$, thus minimizing cross-entropy with respect to $$q$$ is equivalent to minimizing the KL-divergence.
 
-# Loss functions for classification
+# Loss functions for Classification
 
-So far we have seen that cross-entropy or KL-divergence makes sense as a distance measure for probability distributions, but why don't we use L2 or an entirely different measure? We will see that there are certain properties, intuitive and in connection with gradient descent that make it a better choice than for example L2.
+So far we have seen that cross-entropy or KL-divergence makes sense as a distance measure for probability distributions, but why don't we use L2 or an entirely different measure? We will see that there are certain properties, intuitive and in connection with gradient descent, that make it a better choice than for example L2.
 
-## Intuitive properties of cross-entropy
+## Intuitive Properties of Cross-Entropy
 
-Let $$x_T \in \mathbb{R}$$ and $$l_{x_T}: \mathbb{R} \longrightarrow [0,\infty)$$ be a generic loss function for a true value $$x_t$$. Note that this is similar to a distance function where we fix one input to be $$x_T$$, i.e. $$l_{x_T}(x) = d(x_T, x)$$. What kind of intuitive properties would we like our loss function to have?
+Let $$x_T \in \mathbb{R}$$ and $$l_{x_T}: \mathbb{R} \longrightarrow [0,\infty)$$ be a generic loss function for a target value $$x_t$$. Note that this is similar to a distance function where we fix one input to be $$x_T$$, i.e. $$l_{x_T}(x) = d(x_T, x)$$. What kind of intuitive properties would we like our loss function to have?
 
 1. The loss for the target value should be zero: 
    $$l_{x_T}(x_T) = 0$$.
@@ -203,28 +214,28 @@ Let $$x_T \in \mathbb{R}$$ and $$l_{x_T}: \mathbb{R} \longrightarrow [0,\infty)$
 3. Monotonicity. For two values $$x_1, x_2 \in \mathbb{R}$$ such that $$x_2$$ is further away from true value $$x_T$$ than  $$x_1$$, the loss should be bigger for $$x_2$$: 
    $$| x_2 - x_T | > | x_1 - x_T|  \quad \Rightarrow \quad  l_{x_T}(x_2) > l_{x_T}(x_1)$$.
 
-There are a lot of functions which satisfy these properties besides cross-entropy. For example the linear $$ l_{x_T}(x)=x$$ or the quadratic $$ l_{x_T}(x) = x^2$$ loss do. If we set $$x_T = 1$$ we can plot them together for an easier comparison:
+There are a lot of functions which satisfy these properties besides cross-entropy. For example the absolute $$ l_{x_T}(x)=\mid x - x_T \mid $$ or the quadratic $$ l_{x_T}(x) = (x- x_T)^2$$ loss do have that property. If we set $$x_T = 1$$, we can plot them together for a simpler comparison:
 
 ![An overview of different loss functions](/assets/images/loss_functions_part_1/loss_functions.png)
 
-Notice that they are only plotted on the interval $$[0,1]$$, because that is what interests us for classification. Suppose  we have an additional requirement which is a bit more fluffy: we would like to strongly punish confident but wrong predictions. This is where the $$-log(x)$$ function excels. In theory, if you predict zero for a true label of one, your loss will be infinite, in reality our systems do not handle extremely large values well. Nevertheless it gives superior feedback to most other loss functions.
+Notice that they are only plotted on the interval $$[0,1]$$, because that is what interests us for classification. Suppose  we have an additional requirement which is a bit more fluffy: we would like to strongly punish confident but wrong predictions. This is where the $$-log(x)$$ function excels. In theory, if you predict zero for a true label of one, your loss will be infinite, in reality our systems do not handle extremely large values well. Nevertheless, it gives superior feedback to most other loss functions.
 
 
-## Properties in connection with gradient descent
+## Properties in Connection with Gradient Descent
 
-To show the connection between cross-entropy and gradient descent, we will have to do once again a quick detour. Suppose we have a model $$f: \mathbb{R}^n \longrightarrow \mathbb{R}$$, which takes an input vector $$x$$ and outputs an arbitrary number $$y = f(x)$$. For example the model could be a linear layer $$f(x) = x^Th + b$$, or even a more complicated neural network. We want it to do binary classification, i.e. differentiating between two different classes of input. 
+To show the connection between cross-entropy and gradient descent, we will have to do once again a quick detour. Suppose we have a model $$f: \mathbb{R}^n \longrightarrow \mathbb{R}$$, which takes an input vector $$x$$ and outputs an arbitrary number $$y = f(x)$$. For example the model could be a linear layer $$f(x) = x^Th + b$$, or even a more complicated neural network. We want to do binary classification, i.e. differentiating between two different classes of input. 
 
-For the rest of this chapter to work, we will have to make the assumption that the response is monotone with respect to the input, that means if $$f(x) \longrightarrow \infty$$ it is more confident that the class is one. And in the opposite direction if $$ f(x) \longrightarrow -\infty$$, it is more confident that the class is zero. Now we could for example set a  decision boundary to decide which class to predict, for example if $$f(x) > 0$$ we predict class one, otherwise zero. If the model is linear that would be called a linear classifier and the the rule a threshold function.
+For the rest of this chapter to work, we will have to make the assumption that the response is monotone with respect to the input, that means if $$f(x) \longrightarrow \infty$$ it is more confident that the class is one. And in the opposite direction if $$ f(x) \longrightarrow -\infty$$, it is more confident that the class is zero. Now we can create a decision boundary to decide which class to predict, for example if $$f(x) > 0$$ we predict class one, otherwise zero. If the model is linear that would be called a linear classifier and the the rule a threshold function.
 
-A binary classification task can be modeled by a Bernoulli variable $$Z  \sim B(p)$$. A Bernoulli random variable takes values in $$\lbrace 0, 1 \rbrace $$, where $$ P(Z=1) = p $$ and $$ P(Z=0)  = 1-p $$. Notice that there is only one parameter to estimate, hence it is sufficient to model $$ P(Z=1 \mid x) $$, the probability of the input $$x$$ being in class one. But for now our model returns values in $$\mathbb{R}$$, hence we need to restrict it. A naive approach would be to extract the probability by using
+A binary classification task can be modeled by a Bernoulli variable $$Z  \sim B(p)$$. A Bernoulli random variable takes values in $$\lbrace 0, 1 \rbrace $$, where $$ P(Z=1) = p $$ and $$ P(Z=0)  = 1-p $$. Notice that there is only one parameter to estimate, hence it is sufficient to model $$ P(Z=1 \mid x) $$, the probability of the input $$x$$ being of class one. For now our model returns values in $$\mathbb{R}$$, hence we need to restrict it. A naive approach would be to extract the probability by using
 
 $$ P(Z=1 \mid x) = \max\big(0, \min(1, f(x))\big)$$
 
 ![Plot of the maxmin function](/assets/images/loss_functions_part_1/maxmin_plot.png)
 
-The problem with this approach is that the gradient would be zero outside of the $$[0,1]$$ interval. This means our model would not learn from any samples which lie outside of this narrow band of values.
+The problem with this approach is that the gradient would be zero outside of $$[0,1]$$. This means our model would not learn from any samples which lie outside of that interval.
 
-A better approach can be deducted from the following reasoning. Remember we modeled our problem by a Bernoulli random variable $$Z$$, which has probability distribution $$P(z)$$, which we are trying to approximate. If we now assume that the unnormalized log probabilities $$ \log( \hat{P}(z))$$ are linear in $$y$$ and $$z$$ we can construct the following:
+A better approach can be deducted from the following reasoning. Remember we modeled our problem by a Bernoulli random variable $$Z$$, which has probability distribution $$P(z)$$, which we are trying to approximate. If we now assume that the unnormalized log probabilities $$ \log( \hat{P}(z))$$ are linear in $$y$$ and $$z$$, we can construct:
 
 $$\begin{align*} 
  \log( \hat{P}(z)) &= yz\\ 
@@ -233,7 +244,7 @@ P(z) &= \frac{\exp(yz)}{\sum_{z^*=0}^1 \exp(yz^*)} \\
 P(z) &= \sigma((2z-1)y)
 \end{align*}$$
 
-Remember that $$\sigma(x) = \frac{\exp(x)}{1+\exp(x)}$$, $$z \in \lbrace 0,1 \rbrace$$ and $$y \in \mathbb{R}$$. The last term is a slightly difficult to unpack. We can do that by doing a case distinction below. Keep in mind that we assumed that if the model output $$y$$ is high, we wanted to predict label one and vice versa if the output is strongly negative we should predict label zero:
+Remember that $$\sigma(x) = \frac{\exp(x)}{1+\exp(x)}$$, $$z \in \lbrace 0,1 \rbrace$$ and $$y \in \mathbb{R}$$. The last term is slightly difficult to unpack. One way to do that is by a case distinction. Keep in mind that we assume that if the model output $$y$$ is high, we want to predict one, and vice versa if the output is strongly negative we should predict zero:
 
 - For $$z = 0$$: We have that $$P(z) = P(0) = \sigma((0-1)y) = \sigma(-y) = \frac{\exp(-y)}{1+\exp(-y)}$$. 
   - $$\lim_{y \longrightarrow \infty} = \frac{\exp(-y)}{1+\exp(-y)} = 0$$
@@ -276,7 +287,7 @@ In both cases when the prediction is wrong, the derivative of the function appro
 
 <u>Question</u>: Do you see why adding a ReLu after the last layer is not great but does not have a large influence on classification performance?
 
-### What happens if we use a different loss function?
+### What About a Different Loss Function?
 
 Suppose we use a different loss function such as quadratic loss: $$l(x) = x^2$$. Then our loss term becomes 
 
@@ -292,11 +303,11 @@ $$\begin{align*}
 &= 2 \sigma(x)(1-\sigma(x))
 \end{align*}$$
 
-Suppose that $$x \gg 0$$, then sigma is in a extremely saturated region, the first sigma term will be almost one, but the second will be almost zero! This will shrink the gradient considerably, the model will be unable to learn. The same happens when $$x \ll 0$$, but now the first sigma term will be almost zero. These cases show that strongly wrong predictions will not be punished with a strong gradient, not a good property to have.
+Suppose that $$x \gg 0$$, then sigma is in a extremely saturated region, the first sigma term will be almost one, but the second will be almost zero! This will shrink the gradient considerably, the model will be unable to learn. The same happens when $$x \ll 0$$, then the first sigma term will be almost zero. These cases show that confident but wrong predictions will not be punished with a strong gradient, not a good property to have.
 
-### Generalizing to multiple classes
+### Generalizing to Multiple Classes
 
-The previous example worked well for predicting two different classes, but what if we have $$n$$ different classes? Before we modeled the process by a Bernoulli distribution and the model produced only a single output value to predict the log probability of class one, $$p = \log(\hat{P}(z = 1 \mid x))$$. Now we model the process by a multinomial distribution with only one trial, i.e. $$Z \sim \text{Multi}(t,p)$$ where $$t=1$$ and $$p \in \mathbb{R}^n$$ is a vector containing probabilities, hence it has to fulfill the properties $$p_i \in [0,1]$$ and $$\sum_{i=1}^n p_i = 1$$. Additionally we assume the model $$f$$ produces an $$n$$-dimensional vector as output: $$y = f(x) \in \mathbb{R}^n$$.
+The previous example worked well for predicting two different classes, but what if we have $$n$$ different classes? Before we modeled the process by a Bernoulli distribution and the model produced only a single output value to predict the log probability of class one, $$p = \log(\hat{P}(z = 1 \mid x))$$. Now, we model the process by a multinomial distribution with only one trial, i.e. $$Z \sim \text{Multi}(t,p)$$ where $$t=1$$ and $$p \in \mathbb{R}^n$$ is a vector containing probabilities. It has to have the properties $$p_i \in [0,1]$$ and $$\sum_{i=1}^n p_i = 1$$. Additionally we assume the model $$f$$ produces an $$n$$-dimensional vector as output: $$y = f(x) \in \mathbb{R}^n$$.
 
 We can use a similar approach as in the binomial case and assume that the $$i$$-th output predicts log probabilities. Then we exponentiate and normalize to arrive at softmax
 
@@ -323,13 +334,13 @@ $$\begin{align*}
 
 Notice that the last term depends directly on the value of $$y_i$$, our model output. Hence the loss function can not saturate and our optimization can always proceed. The left term $$y_i$$ will always try to grow and the right term will be minimized.
 
-We can approximate the sum on the right side by the biggest term of the sum: $$\log(\sum_{k=1}^n \exp(y_k)) \approx \max_k(\exp(x_k))$$. This is due to the the exponential function growing very fast and all other terms than the maximum will have an negligible influence on the sum. What this tells us that the loss function will strongly penalize the most active incorrect prediction. However if the biggest term in the sum is $$\exp(y_i)$$, the same as the true class, then the loss simplifies to $$ \zeta(y_i)- y_i \approx 0$$, our loss would be very close to zero.
+We can approximate the sum on the right side by the biggest term of the sum: $$\sum_{k=1}^n \exp(y_k) \approx \exp(x_l)$$, where $$x_l$$ is the largest of the $$n$$ terms. This is because the exponential function grows very fast and all other terms than the maximum will have an negligible influence on the sum. This tells us that the loss function will strongly penalize the most active incorrect prediction. However, if the biggest term in the sum is $$\exp(y_i)$$, the same index as the true class, then the loss simplifies to $$ \zeta(y_i)- y_i \approx 0$$, it would be close to zero.
 
-Like the sigmoid which saturates when the input value becomes extreme, the softmax function can saturate when the difference between the input values becomes large. This will lead to problems for all loss functions which do not invert the saturating property. As we saw above, cross-entropy does not have that problem.
+Like the sigmoid which saturates when the input value becomes extreme, the softmax function can saturate when the difference between the input values becomes large. This will lead to problems for all loss functions which do not invert the saturating property. As we saw above, cross-entropy does not have that issue.
 
-## Numerical stability
+## Numerical Stability
 
-Using exponentials can lead to large values, which can bring numerical systems to their limits. However there are some tricks which let use them safely. An interesting property of the softmax is that is invariant to the addition of constants, for $$c \in \mathbb{R}$$ we have
+Using exponentials can lead to large values, which can bring numerical systems to their limits. However there are some tricks which lets us use them safely. An interesting property of the softmax is that is invariant to the addition of constants, for $$c \in \mathbb{R}$$ we have
 
 $$\begin{align*}
 \text{softmax}(y+c)_i &= \frac{\exp(y_i+c)}{\sum_{k=1}^n \exp(y_k+c)} \\
@@ -342,7 +353,7 @@ This can be used to create a numerically stable version of the softmax, where we
 
 $$ \text{softmax}(y)_i = \text{softmax}\bigg(y-\max_k(y_k)\bigg)_i$$
 
-This does not apply to the sigmoid function, as it also contains terms which are not exponentiated. However it can be written in two different forms:
+This does not apply to the sigmoid function, as it contains terms which are not exponentiated. However it can be written in two different forms:
 
 $$\sigma(x) =  \frac{1}{1+\exp(-x)} = \frac{\exp(x)}{1+\exp(x)}$$
 
