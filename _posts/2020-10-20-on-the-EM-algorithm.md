@@ -12,7 +12,7 @@ published: yes
 
 Recently I came across a paper extensively using the EM algorithm and I felt I was lacking a deeper understanding of its inner workings. As a result I decided to review it here, mostly following the excellent machine learning class from [Stanford CS229](http://cs229.stanford.edu/). In this post I follow the structure outlined in the class notes but change the notation slightly for clarity. We will first have a look at $$k$$-means clustering, then see the EM algorithm in the special case of mixtures of Gaussians and finally discover a general version of EM.
 
-## Basic concepts and Notation
+## Basic Concepts and Notation
 
 Readers familiar with the basic concepts and notation in probability theory may skip this section.
 
@@ -142,7 +142,7 @@ Where $$c$$ and $$\mu$$ are the collection of all class vectors and centroids, i
 
 However the distortion function $$J$$ is non-convex, so we are not guaranteed to converge to a global optimum. Hence if we apply $$k$$-means only once, we might get stuck in a local optimum. To increase the chances of finding a global minimum, we can run the algorithm multiple times with different random initializations and then pick the result with the lowest value in the distortion function $$J$$. There is also no guarantee how fast $$k$$-means will converge.
 
-# EM-Algorithm for Mixtures of Gaussian
+# EM-Algorithm for Mixtures of Gaussians
 
 So far for the $$k$$-means case we had the implicit assumption that each input sample $$x_i$$ can only belong to one centroid $$\mu_j$$. What if we relax that assumption and instead assign weights for each input and centroid pair? Let $$w_{ij}$$ be the weight that input $$x_i$$ gives to centroid $$\mu_j$$. If we assume that these weights are normalized, i.e. $$1 = \sum_i w_{ij}$$ we can call them a probability. Then the weight $$w_{ij}$$ is the probability that input $$x_i$$ belongs to centroid $$\mu_j$$. We can model this with a random variable $$z_i \sim \text{Multinomial}(\phi)$$ and have $$w_{ij} = P(z_i = j \mid x_i)$$. Note that the $$z_i$$'s are latent variables, they are not unobservable.
 
@@ -224,7 +224,7 @@ $$\begin{align*}
 
 Again, explicitly finding the maximum likelihood estimates for $$\theta$$ may be hard since $$z_i$$'s are not observed. The strategy will be to construct a lower bound on $$l$$, the E-step, and optimize that lower bound, the M-step. 
 
-## The case for a single data point
+## The Case for a Single Data Point
 
 To simplify the case, we will only consider the case for a one data point in this sub-section, i.e. $$n=1$$, and call that $$x$$. So the goal we are trying to optimize will be 
 
@@ -306,7 +306,7 @@ The process continues until convergence is reached. Note that this is a highly i
 
 
 
-## The case for arbitrary data
+## The Case for Arbitrary Data
 
 So far we were ignoring the full training set of $$n$$ examples of data $$\lbrace x_1, \dotsc, x_n \rbrace$$. The optimal choice for $$Q$$ depended on the particular example $$x$$ as we had $$Q(z) = p_{\theta}(z \mid x)$$. The straightforward thing to do is to introduce $$n$$ distributions $$Q_1, \dotsc, Q_n$$, one for each example $$x_i$$. Then for each $$x_i$$ we can build the evidence lower bound:
 
@@ -340,7 +340,7 @@ For this choice of $$Q_i$$'s the inequality above gives a lower-bound on the log
     &= \text{arg} \max_{\theta} \sum_{i=1}^n  \sum_{z_i} Q_i(z_i)  \log \bigg(\frac{p_{\theta}(x_i,z_i)}{Q_i(z_i)}\bigg)   
    \end{align*}$$
 
-## Monotonic improvement
+## Monotonic Improvement
 
 We saw in the images above why the algorithm intuitively improves for each iteration, now we have all the tools to proof it as well. Suppose we have parameters $$\theta_t$$ and $$\theta_{t+1}$$ from two successive iterations of EM. We need to prove that $$l(\theta_t) \leq l(\theta_{t+1})$$. The key to show this result is the choice of $$Q_i$$'s. Remember we chose them in a way to make Jensen's inequality tight, i.e. $$Q_i^t(z_i) := p_{\theta_t}(z_i \mid x_i)$$. This gives us
 
