@@ -91,11 +91,11 @@ Readers familiar with the basic concepts and notation for neural networks may sk
 
   This is the most simple case where we have a real valued function. But this also applies for more complicated objects such as vectors or matrices.
 
-- **Mean**: Let $$ n \geq 1$$ and $$x_1, \dotsc\, x_n \in \mathbb{R}$$, the mean of $$x_1, \dotsc\, x_n$$ is
+- **Mean**: Let $$ n \geq 1$$ and $$x_1, \dotsc , x_n \in \mathbb{R}$$, the mean of $$x_1, \dotsc , x_n$$ is
 
   $$\overline{x} = \frac{1}{n}\sum_{i=1}^n x_i$$
 
-- **Variance**: Let $$ n \geq 1$$, $$x_1, \dotsc\, x_n \in \mathbb{R}$$ and $$\overline{x}$$ the mean that sequence. Then the variance of $$x_1, \dotsc\, x_n$$ is defined to be 
+- **Variance**: Let $$ n \geq 1$$, $$x_1, \dotsc , x_n \in \mathbb{R}$$ and $$\overline{x}$$ the mean that sequence. Then the variance of $$x_1, \dotsc , x_n$$ is defined to be 
 
   $$\sigma^2 = \frac{1}{n}\sum_{i=1}^n (x_i -\overline{x})^2 $$
 

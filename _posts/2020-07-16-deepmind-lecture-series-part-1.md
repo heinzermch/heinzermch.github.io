@@ -21,8 +21,6 @@ While I tried to summarize the talk and the speaker as closely as possible, I di
 
 ## Episode 1 - Introduction to Machine Learning and AI
 
-
-
 ### 01 - Solving Intelligence - [3:37](https://www.youtube.com/watch?v=7R52wiUgxZI&list=PLqYmG7hTraZCDxZ44o4p3N5Anz3lLRVZF&t=217s)
 
 What is intelligence? Intelligence measures an agent’s ability to achieve goals in a wide range of environments. Or more technically we can define intelligence as
