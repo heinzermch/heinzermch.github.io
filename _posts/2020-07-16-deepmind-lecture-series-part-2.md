@@ -1,28 +1,54 @@
 ---
 layout: post
 author: Michael Heinzer
-title:  "DeepMind lecture series"
+title:  "DeepMind Lecture Series - Part II"
 description: Taking notes and summarizing
-date:   2020-08-15 11:00:00 +0530
-categories: None
+date:   2020-12-21 11:00:00 +0530
+categories: DeepLearning NLP Transformer Attention Memory
 comments: no
 published: no
 ---
-I was watching this DeepMind lecture series. Would like to see more about Deep RL, Graph
+I was watching this DeepMind lecture series. 
 
 ## Episode 7 - Deep Learning for Language Understanding
 
 ### 01 - Background: Deep Learning and Language
 
-What is not covered. Speech, many NLP tasks, field is much bigger. Some tasks still use almost no neural networks, hard to do end to end with home assistants dalogue systems. Trend is moving towards neural and deep papers. Performance in GLUE benchmark, represents challengening language tasks, performance is still increasing up to this day. 
+What is not covered. Speech, many NLP tasks, field is much bigger. Some tasks still use almost no neural networks, hard to do end to end with home assistants dialogue systems. Trend is moving towards neural and deep papers. Performance in GLUE benchmark, represents challenging language tasks, performance is still increasing up to this day. 
 
-Why is deep learning such an effective tool for language processing? Need to think about language itself, and why it fits together with deep learning. Mapping symbols to symbols, but its not actually that simple (see face slide). Delve into the meaning of face, have certain aspects in common but are not exactly the same. Pointing aspect of face. Disambiguation depends on context
+![Visualization of the language field](/assets/images/deepmind_lecture_part_2/e07_01_language_field.png)
 
-Went and event in handwritten sentence is easily read by humans. Reading symbols up and down or left to right
+Why is deep learning such an effective tool for language processing? Need to think about language itself, and why it fits together with deep learning. Mapping symbols to symbols, but its not actually that simple:
 
-Important interactions can be non-local, look at wider context
+- Did you see the look on her **face**?
+- We could see the clock **face** from below
+- It could be time to **face** his demons
+- There are a few new **faces** in the office today
+
+ Delve into the meaning of face, have certain aspects in common but are not exactly the same. Pointing aspect of face. 
+
+![Visualization of the language field](/assets/images/deepmind_lecture_part_2/e07_01_face_ambiguous.png)
+
+Disambiguation depends on context. Went and event in handwritten sentence is easily read by humans.
+
+![Visualization of the language field](/assets/images/deepmind_lecture_part_2/e07_01_hand_writing.png)
+
+Important interactions can be non-local, look at wider context. Examples:
+
+- The man who ate the pepper sneezed
+- The cat who bit the dog barked
+
+People are much slower to make sense of the second sentence, even they have the same overall structure. It is unusual that the cat does the barking, "the dog barked" captures our attention. The urge to consider this comes from our understanding of the world.
+
+How meanings combine depends on those meanings:
+
+- Pet: brown, white, black
+- Fish: silver, grey
+- Pet fish: orange, green, blue, purple, yellow
 
 Combining pet and fish to pet fish changes the color associated with them.
+
+![Visualization of the language field](/assets/images/deepmind_lecture_part_2/e07_01_pet_fish.png)
 
 ### 02 - The Transformer
 
@@ -304,15 +330,15 @@ GANs everywhere: RL, Image Editing, program synthesis. Motion transfer: everybod
 
 ### 01 - What is unsupervised learning
 
-Birds eye view. Supervised learning: Learn mapping from given inputs to given outpus, that hopefully generalizes. RL: which actions to take at any state to maximize expected future rewards, only gets feedback once it finishes the task, unless supervised supervised learning reward is sparse. Unsupervised learning: No teaching signal, only have input data.
+Birds eye view. Supervised learning: Learn mapping from given inputs to given outputs, that hopefully generalizes. RL: which actions to take at any state to maximize expected future rewards, only gets feedback once it finishes the task, unless supervised supervised learning reward is sparse. Unsupervised learning: No teaching signal, only have input data.
 
 Do we need unsupervised learning?
 
-What can we do with that data? Clustering, dimensionality reduction, find dimenions which explain most of the variance (sounds like PCA)
+What can we do with that data? Clustering, dimensionality reduction, find dimensions which explain most of the variance (sounds like PCA)
 
 How do we evaluate it?
 
-No ground truth to compare it to. Clusters, how do we know hich clusters are good? So many possibilities. How do we know hich choises are good or bad. Simliar, pca and ICA orthogonality
+No ground truth to compare it to. Clusters, how do we know which clusters are good? So many possibilities. How do we know which choices are good or bad. Simliar, pca and ICA orthogonality
 
 ### 02 - Why is it important?
 
@@ -326,15 +352,15 @@ Add representation between task and AI, flat are hierarchical? Once or learn it 
 
 ### 03 - What makes a good representation?
 
-Ill defined and challenging question. Look to related dispcplinecs for inspiration, for example neuroscience.
+Ill defined and challenging question. Look to related disciplines for inspiration, for example neuro-science.
 
-Def what is representation: Formal system for making explicit certain entities or types of information, getgher with a specification of how the system does this. Three ways of writing 37, representational from is orthogonal to information content. It is a useful abstractiong and makes different types of computations more efficient. Think aobut the full form of the manifold.
+Def what is representation: Formal system for making explicit certain entities or types of information, together with a specification of how the system does this. Three ways of writing 37, representational from is orthogonal to information content. It is a useful abstraction and makes different types of computations more efficient. Think about the full form of the manifold.
 
-What hapens in the brain when information moves in it. Becomes a manifold when you rotate or change perspective. Makes it hard to untagle different objects. Ventral stream transform reformats into better form for that task. Untangle representations.
+What happens in the brain when information moves in it. Becomes a manifold when you rotate or change perspective. Makes it hard to untangle different objects. Ventral stream transform reformats into better form for that task. Untangle representations.
 
-How cross a street? What other properties should representations have. Appraoch from RL persepcte. Think of representations as states which form an MDP, can shed light on what properties representations should have. Two MDPs, should contain information about presence of cars. What information to include in representation?
+How cross a street? What other properties should representations have. Approach from RL perspective. Think of representations as states which form an MDP, can shed light on what properties representations should have. Two MDPs, should contain information about presence of cars. What information to include in representation?
 
-Solving tasks requires. Want to exclude all irelevant information for task. Should support attention to remove unimportant details. Allows for better clustering. Want to pull a taxi, need a different representation than going home task. Want to keep the information about the color of the car. hence latent representation should have as input the task we are trying to solve, to support the downstream tasks.
+Solving tasks requires. Want to exclude all irrelevant information for task. Should support attention to remove unimportant details. Allows for better clustering. Want to pull a taxi, need a different representation than going home task. Want to keep the information about the color of the car. hence latent representation should have as input the task we are trying to solve, to support the downstream tasks.
 
 Compositinality. Ability to infer the meaning of a complex expression. Man with binoculars example, who has the binoculars. Important because it leads to open-endedness.
 
@@ -354,49 +380,49 @@ Group theory, want to caputre a set of symmetry transformations, want to capture
 
 How can we verify that we are on the correct path? Evaluating representations. Representations should adress the follwing:
 
-- Symmery in definition
-- Untangeled 
+- Symmetry in definition
+- Untangled 
 - Should be compositional
-- Can implement attention in for examply binary mask
+- Can implement attention in for example binary mask
 - Clostering: need metric, can assume it is in a vectorspace
 
-Represention should help with shortcomings
+Representation should help with shortcomings
 
-- Data efficiency: Majority of natural task. Color transformation is easily learned by lnear mapping. Research shows that incorporating symmetry does help in supervised task (see paper)
+- Data efficiency: Majority of natural task. Color transformation is easily learned by linear mapping. Research shows that incorporating symmetry does help in supervised task (see paper)
 - Robustness: Mapping f needs to be equivariant. Functional form quite constrained, help it might be more robust to adversarial attacks. Example on slide, CVPR 2020 paper, includes attention
 - Generalization: can be increased if the decision on which action to take can be made without those aspects of representation that are not imporant of to the task. Since our symmetry based representation of Z preserves the important information about the stable course of the world in a format that allows for fast attention attenuation, we quickly adapt the minimal set of informative subspaces available to the decision network when faced with solving diverse tasks. Thus increasing the generalization of such decision networks.
-- Transfoer: Mapping f connects the underlying symmetry transformation to the representation, it should not care about the nature of the intermedia observation. Was shown that the schema networks could transfer its ability to breakout much better than the unstructured deep RL baseline.
-- "Common sense": Least explored area of machine learning, preliminary evidence suggests that our hypothesised representations may support compositional abstract imagination and maybe a solution for grounding many promising discreet or symbol based algorithms. They have concept induction and abstract reasoning.
+- Transformer: Mapping f connects the underlying symmetry transformation to the representation, it should not care about the nature of the intermediate observation. Was shown that the schema networks could transfer its ability to breakout much better than the unstructured deep RL baseline.
+- "Common sense": Least explored area of machine learning, preliminary evidence suggests that our hypothesized representations may support compositional abstract imagination and maybe a solution for grounding many promising discreet or symbol based algorithms. They have concept induction and abstract reasoning.
 
 Currently no algorithm exists that can learn such symmetry equivariant representations in a robust and scalable manner. Aiming for such representations may be a good research direction.
 
 Recap:
 
-Deep learning sucesses may be due to its ability to implicitly learn good representations.
+Deep learning successes may be due to its ability to implicitly learn good representations.
 
 ### 05 - Techniques and applications
 
-Three main pillars to acheive outlined goals.
+Three main pillars to achieve outlined goals.
 
 Generative modeling: modeling underlying distribution
 
-Contrastivle losses: classification losses to learn representations that preserve temporal or spatial data
+Contrastive losses: classification losses to learn representations that preserve temporal or spatial data
 
-Self-supervison: Information about data modality, images audio. learn representation that preserve data.
+Self-supervision: Information about data modality, images audio. learn representation that preserve data.
 
-Downstream tasks: semi-supervised learning, reinforcement learning, model analysis. First learn from unsupervised data only, then ask questions about the representations learnned. Build downstream tasks to asses what kind of information is in there. How much information about the label is still present, often by building a simple classifier, linear layer. have in mind data efficiency and want to be able to generalize. Can also ask additional questions. First train on imagenet without any label information, then use small percentage to train clasifier to see how well representation are doing. Alowws to compare different representations.
+Downstream tasks: semi-supervised learning, reinforcement learning, model analysis. First learn from unsupervised data only, then ask questions about the representations learned. Build downstream tasks to asses what kind of information is in there. How much information about the label is still present, often by building a simple classifier, linear layer. have in mind data efficiency and want to be able to generalize. Can also ask additional questions. First train on ImageNet without any label information, then use small percentage to train classifier to see how well representation are doing. Allows to compare different representations.
 
-RL: Agents in multiple different environment, or learn from different experience. Tasks that are very hard to learn from online data. Learning disentagled representation can speed things up
+RL: Agents in multiple different environment, or learn from different experience. Tasks that are very hard to learn from online data. Learning disentangled representation can speed things up
 
-Model analysis. Understand what the model is doing, do they satisfy the property. Learning interpretable models, want to see what it is learning before deplyoing it in production.
+Model analysis. Understand what the model is doing, do they satisfy the property. Learning interpretable models, want to see what it is learning before deploying it in production.
 
-Keep in mind what we want, discrete and continous representation (face has glasses is binary, haircolor is continuous). Representations adapt with experience, continual learning, RL). Consistency in data should be represented, example a scene, from different angle.
+Keep in mind what we want, discrete and continuous representation (face has glasses is binary, haircolor is continuous). Representations adapt with experience, continual learning, RL). Consistency in data should be represented, example a scene, from different angle.
 
 #### **Generative Modeling**
 
-What kind of distribution could have generated our dataset? Main question. Example mixture of two gaussians. Learning probability distributions efficiently has a lot of connections with compressing data. Want representations that are efficient and compressed.
+What kind of distribution could have generated our dataset? Main question. Example mixture of two Gaussians. Learning probability distributions efficiently has a lot of connections with compressing data. Want representations that are efficient and compressed.
 
-Latent variable models: Mapping from low dimensional to high dimensional space. Being able to model the sampling process, assume generative process looks like that. Assume taht they are generated by very complicated mapping (NN). Inference p(z|x). In practice learn inference and generation together. Don't have access to true distribution of z.
+Latent variable models: Mapping from low dimensional to high dimensional space. Being able to model the sampling process, assume generative process looks like that. Assume that they are generated by very complicated mapping (NN). Inference p(z|x). In practice learn inference and generation together. Don't have access to true distribution of z.
 
 Variational autoencoders. Uses maximum likelihood, can't see p*(x) directly but use Monte Carlo simulation. Challenge is latent variable and train them with MLE, it is given by an integral (describes the integral, what it does). p(z) is a prior. We use a lower bound, ELBO, lower bound on MLE objective. Optimize bound, make it as close as possbile to the real objective. Difference between EM and MLE. For complex models we cannot calculate the posterior exactly, this makes the difference between EM and variational inference. In EM the inequality becomes equality. VAE as close as possible to log probability. First term is likelihood term, encode in latent variable as much information as possible, assign high probability to orogianl x we have seen, only possible if we encoded original information efficiently. Second term, want representation to be close to prior. 
 
