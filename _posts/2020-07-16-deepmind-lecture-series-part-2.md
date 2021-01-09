@@ -577,54 +577,140 @@ is the KL-divergence between the true and the approximate prior. It regularizes 
 
 *<u>Remark</u>: This is only a very brief introduction to VAE, for more details see lecture 11 or the paper [Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114)*
 
-. beta-VAE. This is called latent traversal. All six are fixed except for one. (6th and 7th latent variable.) See what changes in the scene if you change one variable. Entangled is non betaVAE.
+A variation of the classical VAE are $$\beta$$-VAE. The additional weight on the KL term encourages disentangled representations:
 
-Downstream tasks, evaluate how good representations are for transfer learning and generalization. Allows RL learnings to transfer quicker form simulation to reality.
+$$p_{\theta} (x) \geq \mathbb{E}_{q_{\eta}(z \mid x)} p_{\theta}(x \mid z) - \beta \text{KL}(q_{\eta}(z \mid x) \| p(z))$$
 
-Sequential VAE - ConvDraw, car example, first draw the outline then give more details. Have a recurrent component. Move from high level outline to final detailed  image. Can have posterior distributions that are autoregressive and way more complex, can be closer to true posterior. Can get closer to the bound.
+By learning disentangled continuous representations we can traverse the latent space, this is called latent traversal. Example of disentangled latent spaces are: location, object, distance to object and rotations in the image above.
 
-Layered models - Monet. VAE and segmentation network. beta VAE and attention network to segment objects in an unsupervised way. Masked input after first attention network is inputed to the VAE. Monet and monet in reinforcement learning.
+![Example of disentangled latent representations](/assets/images/deepmind_lecture_part_2/e10_05_disentangled_representations.png)
 
-Generative Query Networks (GQN) look at consistency property. Information about how scene would look lke from different angles. Provide data from scene from different angle. Multiple generation steps. Model has to learn to draw from different angle. 
+ All six are dimensions are fixed except for one. See what changes in the scene if you change one variable, the entangled is a non-betaVAE. Beta-VAE can also be integrated in reinforcement learning agents, they improve generalization and transfer. This allows to transfer quicker from simulation to reality.
 
-GQN can capture uncertainty. It is able to imagine that there are multiple objects behind a wall. We want representations to encode uncertainty about the world.
+Downstream tasks, evaluate how good representations are for transfer learning and generalization. Allows RL learnings to transfer quicker form simulation to reality. See the [paper](https://arxiv.org/abs/1707.08475).
 
-GQN in RL: less variance in learning, and even being able to learn the task and not being able to learn the task at all.
+![Sim to reality in RL](/assets/images/deepmind_lecture_part_2/e10_05_rl_sim_to_reality.png)
 
-Vector quantized VAEs: learning discrete latent variables is challenging. start with continuous vector, look into learned table of embedding and look for NN in that table, and the index will give the discrete variable. Now we are able to learn with discrete latent spaces. can get very good compression algorithm, but reconstruction are a bit blurry, because we are using probability model.
+Another idea are sequential VAE - ConvDraw, where a recurrent component is introduced. The recurrence helps iteratively refine the image and add additional details.
 
-GAN: (basic structure): GANs can t answer the inference question.
+![Sequential VAE, architecture and example](/assets/images/deepmind_lecture_part_2/e10_05_sequential_vae.png)
 
-BigBiGan can do that, learn to encode by changing the adversarial game. Crucial how discriminator changes. Want to go beyond that. want to match data and latent variables in prior. And invert from latent to other model. (see paper from Donahue). Marginals will be matched, latent variable distributions will be matched as in the VAE case, and we matched the relationship between xhat and x and z to zhat. No use of reconstruction loss. Learn how to reconstruct and.
+In the car example, we first draw the outline then give more details. The model moves from high level outline to final detailed  image. Such a model can have posterior distributions that are autoregressive and way more complex, can be closer to true posterior. This can get closer to the theoretical lower bound we saw before. Read the [paper](https://arxiv.org/abs/1604.08772).
 
-No pixel-based loss, captures high level information.
+Another approach are layered models, called MONet. It combines VAEs, segmentation networks and attention. It allows the network to iteratively pay attention to different parts of the image since we feed in an attention mask as well. This allows the network to segment objects in an unsupervised way.
 
-GPT: useful for downstream tasks. Use very well tuned neural architecture with large amount of data.
+![MONet VAE architecture](/assets/images/deepmind_lecture_part_2/e10_05_monet_vae.png)
 
-Contrastive learning, completely unsupervised, removes need for generative model. Use classification loss instead, built from unsupervised data. Done so that the right context is encoded.
+Using attention in multi-level process leads to generative models which learn concepts unsupervised. Experiments show that latent variables learn to encode the position of an object into a single latent variable. The resulting representations help improve tasks in reinforcement learning. For more details see the [paper](https://arxiv.org/abs/1901.11390).
 
-Contrastive losses: word2vec. One hot represents no semantic information whatsoever, no relationship between words. But how can we do that? By learning a model which predicts the representation it should expect from past data. Provide positive and negative examples in training, predict next word to expect. Want to test it how? Unsupervised learning in English and Spanish. Then learn simple linear mapping from few data points. Is this mapping generalizing? Can we do dictionary translation. 
+![MONet example](/assets/images/deepmind_lecture_part_2/e10_05_monet_example.png)
 
-Contrastive predictive coding. Maximize mutual information between data and learning representations. Learns what we have seen so far. Think of the idea as temporal coherence structure. Can also be used for spatial data such as images, different patches. Do very well when we don't have many labels.
+Generative Query Networks (GQN) look at consistency property by learning a representation by looking at a scene from two different angles. This information is then encoded in a latent space and the model has to learn to draw the same scene from a different angle.
 
-SimCLR another contrastive loss idea. If you transform the image a little bit, then you still want to have same representation after transformation f. Should contain most of the information, but it should not be fully same information. so we add a different mapping g we then obtain a mapping which is the same. Downstream task uses f results to do things. This is shown for images. Have a nice plot where you compare for number of parameters in models.
+![generative query networks architecture](/assets/images/deepmind_lecture_part_2/e10_05_gqn_architecture.png)
 
-#### Self supervised learning
+An interesting fact is that GQN can capture uncertainty about the state of the world. See the example below where we give it an image where it looks at a wall. It is able to imagine that there are multiple objects behind a wall. This is an important property, we want representations to encode uncertainty about the state of the world. For more details, see the [paper](https://science.sciencemag.org/content/360/6394/1204).
 
-Colorful image colorization. Needs no label, and ask model to revert the mapping. Use this again for representation learning. We can do context prediction, learn spatial consistency. Given a patch, which one do you think the other patch is? It only has to do 8 way classification, but it has to understand and learn representations that are useful for semi supervised learning. We can also go and look at sequences, shuffle images and let the model sort the images as in the original sequence. it has not to know how the next image looks neither has to predict it. learn temporal coherence. One example is BERT, leverages tasks that learn local and global structure. Learns which words have been masked in a sentence. Given sentence A and sentence B which one will come first? this is long term structure not such as the other task. Also uses bidirectional models as transformer. Put in production as part of google search.
+![uncertainty in generative query networks example](/assets/images/deepmind_lecture_part_2/e10_05_gqn_uncertainty.png)
+
+Vector quantized VAEs are solving a different problem, here we want the latent space to be discrete. Learning discrete latent variables is challenging since you can't propagate a gradient through them and have to estimate it with high variance. How it works here is to start with continuous vector, look into learned table of embedding and look for a nearest neighbor in that table. The index will then give you the discrete variable. 
+
+![vector quantized VAE architecture](/assets/images/deepmind_lecture_part_2/e10_05_vq_vae_architecture.png)
+
+Having a discrete latent space is giving us a very good compression algorithm, since the variables can be used to capture high and low level information from the data. But reconstruction can be a bit blurry, because we are using probability model to approximate the original content. For more details see the [paper](https://papers.nips.cc/paper/2017/hash/7a98af17e63a0ac09ce2e96d03992fbc-Abstract.html).
+
+![vector quantized VAE example](/assets/images/deepmind_lecture_part_2/e10_05_vq_vae_example.png)
+
+What about GAN? The image below gives a quick recap of how they work, the main two components being the generator and the discriminator. Where we only use the discriminator during the training. When generating samples with GANs we have no reconstruction loss and the learned model is implicit.
+
+![GANs architecture](/assets/images/deepmind_lecture_part_2/e10_05_gan_architecture.png)
+
+ The problems with GANs are that we can't answer the inference question (what is the latent representation for a given sample) and there is no uncertainty around the learned representations. Hence we need a new model.
+
+![Example GAN can't do inference](/assets/images/deepmind_lecture_part_2/e10_05_gan_inference.png)
+
+BigBiGan can do that, it learns to encode data by changing the adversarial game. In the left part, the encoder is very similar to VAE case. The crucial change is how the discriminator changes, so far it was only evaluated between samples from data. This is the $$x$$ and $$\hat{x}$$ distribution. Want to go beyond that, we also want to match the latent variables $$\hat{z}$$ and $$z$$ using the prior and invert the generation process from latent samples to model samples. We can do that by having a discriminator that uses pairs, the model has to distinguish between the two samples. The joint distributions have to be matched. Marginal distribution of the encoder is going to be equal to that of the prior in the VAE case. But we also matched the relationship between x and z. All this is done without having any reconstruction loss.
+
+![BigBiGAN architecture](/assets/images/deepmind_lecture_part_2/e10_05_bigbigan_architecture.png)
+
+There is no pixel level loss for reconstruction, hence the reconstructions capture high level informations as do the latent spaces. This means the representations can be meaningful for semi-supervised learning. The [paper](https://papers.nips.cc/paper/2019/hash/18cdf49ea54eec029238fcc95f76ce41-Abstract.html) was ImageNet SOTA at the time of publishing.
+
+![BigBiGAN example](/assets/images/deepmind_lecture_part_2/e10_05_bigbigan_example.png)
+
+#### **Contrastive learning**
+
+Contrastive learning is completely unsupervised and removes the need for a generative model. It uses classification loss instead, but built from unsupervised data. If that is done in the right way, the context is encoded into our representation. 
+
+An example for a contrastive loss is word2vec, it learns representations for text. This is specifically important for text, because the simplest approach would be one hot encodings. This encodes no semantic information, there are no relationship between words. For example we have no way of representing that Beijing is to China what Moscow is to Russia. So we want to learn representations of text that encode semantic information. We can do that by learning a model which predicts the kind of representation it should expect, given the past context. Where the context is a few words. The crucial bit of that kind of loss is providing positive and negative examples. So we train it saying this is what you should expect in the next point but this are words which you should not expect.
+
+$$\log \sigma(v_{w_O}^T v_{w_I}) + \sum^k_{i=1} \mathbb{E}_{w_i \sim P_n(w)} \bigg[\log \sigma(-v_{w_i}^T v_{w_I})\bigg]$$
+
+<u>Remark:</u> *This formula is not clear at all without some explanation. It's better to have a look at the [paper](https://papers.nips.cc/paper/2013/hash/9aa42b31882ec039965f3c4923ce901b-Abstract.html) instead*
+
+In translation, the relationships in for the same words should be the same in different languages, because they represent the same concept. How do we do that? Train word2vec unsupervised in English, train word2vec model unsupervised in Spanish and then use few example to learn a simple linear mapping between the two languages. Does this map generalize? Can we do dictionary translation if we use a smart mapping for these words? The answer is: yes. With word2vec we can then translate using a very similar mapping. This is not perfect but most of the words have a very similar semantic meaning.
+
+![Word2Vec examples for translation](/assets/images/deepmind_lecture_part_2/e10_05_word2vec_examples.png)
+
+In Contrastive predictive coding we try to maximize mutual information between data and learned representations. Think of the idea as temporal coherence structure. It uses supervised learning to model density ratios:
+
+$$ L_N = - \mathbb{E}_X \bigg[ \log \frac{f_k(x_{t+k}, c_t)}{\sum_{x_j \in X} f_k(x_j, c_t)}\bigg] $$
+
+<u>Remark:</u> *Again the formula on its own is not very useful without having a closer look on the [paper](https://arxiv.org/abs/1807.03748).*
+
+ Can also be used for spatial data such as images, different patches. Representations learned in this way are more useful for downstream tasks in the low data regime. Below is an example for audio:
+
+![Contrastive predictive coding for audio](/assets/images/deepmind_lecture_part_2/e10_05_contrastive_predictive_coding.png)
+
+SimCLR is another contrastive loss idea. If you transform the image a little bit, then you still want to have same representation after applying a transformation $$f$$. While it should contain most of the information,it should not be the exact same information. Hence we add a different mapping $$g$$ to then obtain a representation which is the same.
+
+![SimCLR architecture](/assets/images/deepmind_lecture_part_2/e10_05_simclr.png)
+
+The downstream task uses the representations produced by $$f$$. The [paper](https://arxiv.org/abs/2002.05709) which introduced this loss achieved SOTA on ImageNet benchmarks, on a linear classifier trained on input representations and on semi-supervised learning where you can train on 10% of the images.
+
+![SimCLR results](/assets/images/deepmind_lecture_part_2/e10_05_simclr_results.png)
+
+Take home message: contrastive losses use classifiers to learn representations which are temporally or spatially consistent.
+
+#### **Self supervised learning**
+
+Want to encode the kind of information which is useful for downstream tasks in our representations. This is for tasks where it is easy to obtain data and we can encode prior knowledge into the data modality. For example in image colorization, start with an image of colored data and don't need any labels. Use a tool to turn the images into black and white. Ask the model to revert that mapping, i.e. how to colorize. If we do this right we can use the representations for semi-supervised learning tasks, such as in ImageNet.
+
+![Image colorization example](/assets/images/deepmind_lecture_part_2/e10_05_image_colorization.png)
+
+Important here, we started with an unsupervised set and created supervised data by thinking of the kind of properties we want our data to encode. We can go beyond colors, can take an image and ask the model to learn spacial consistency by looking at different patches of the image.
+
+![Context prediction in images example](/assets/images/deepmind_lecture_part_2/e10_05_context_prediction.png)
+
+Given a particular patch, which one do you think the other patch is. What the model has to learn is that if we have a cat, we need to know where the ear is, in the example above it would be on the upper right, hence the label $$Y=3$$. The model only does 8-way classification, but in order to answer that kind of question, it has to understand and learn the kind of representations that are useful for object discovery.
+
+Can go beyond single images with video data. Take a couple of frames, shuffle them and ask the model to sort the sequence. To learn temporal coherence. We can do that without predicting particular frames, only needs to learn the order. Downstream tasks include object and action recognition.
+
+![Shuffled sequences example](/assets/images/deepmind_lecture_part_2/e10_05_shuffled_sequences.png)
+
+One example that combines a few of the methods we have seen before is BERT. It learns representations of text by leveraging both tasks that allow the model to learn local and global structure. For example, one of the tasks is to learn which particular words have been masked in an input sentence. Given a sentence we mask a few words and ask the model what is the right word to fill in the blanks. Crucially, the model is also asked given two sentences A and B, which sentence does come first? This is long term temporal coherence and is very different than answering questions about local structure by filling in single words. BERT has sparked a revolution in NLP, and used for multiple downstream tasks. It has also been deployed into production in Google search.
+
+![BERT deployed in google search example](/assets/images/deepmind_lecture_part_2/e10_05_bert_deployed_google_search.png)
+
+Take home message: Self supervised learning exploits domain knowledge to build tasks useful for representation learning.
 
 Keep in mind that:
 
-- task desing is important
-- modality
-- context
-- learning generative models is hard, maybe able to get away without it
-- Benefits by incorporating changes in neural architectures.
+- Task design for learning representations is important
+
+- Modality is important
+
+- Context is important
+
+- Learning generative models is hard, might be able to get away without it (contrastive losses, self supervision)
+
+- Crucial benefits by incorporating changes in neural architectures
+
+  
 
 ### 06 - Future
 
 - Generative models: powerful posteriors (autoregressive) and better priors (disentanglement)
-- Contrastive learning
+- Contrastive learning: going beyond temporal and spatial coherence
 - Self supervised learning: more task design by exploiting information about modality
 - Incorporating changes in neural representations. DL will advance and use these improvements
 - Causality, causal coherence and have the representations that are able to answer these tasks.
