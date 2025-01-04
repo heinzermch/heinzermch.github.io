@@ -3,7 +3,7 @@ layout: post
 author: Michael Heinzer
 title:  "On RLHF, DPO And PPO"
 description: A quick overview on finetuning LLMs beyond classification and regression.
-date:   2025-01-02 18:00:00 +0530
+date:   2025-01-05 18:00:00 +0530
 categories: LLMs SFT RLHF DPO PPO ReinforcementLearning
 comments: yes
 published: true
@@ -110,7 +110,7 @@ instead. The choice of $$\beta$$ is tricky and changes with every task.
 
 ### Clipped Surrogate Objective
 
-Let $$r_t(\theta)$$ denote the probability ratio $$r_t (\theta) = \frac{\pi_{\theta} (a_t \mid s_t)}{ \pi_{\theta o}(a_t \mid s_t)}$$. It follows that $$r(\theta o) = 1 $$.
+Let $$r_t(\theta)$$ denote the probability ratio $$r_t (\theta) = \frac{\pi_{\theta} (a_t \mid s_t)}{ \pi_{\theta old}(a_t \mid s_t)}$$. It follows that $$r(\theta_{old}) = 1 $$.
 
 TRPO maximazes a "surrogate" objective 
 
