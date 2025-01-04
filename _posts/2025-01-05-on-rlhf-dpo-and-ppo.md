@@ -26,7 +26,7 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
 
 - **Policy**: A rule used by an agent to decide what actions to take, if it is stochastic it is denoted by $$\pi $$. It samples actions $$a_t$$ from states $$s_t $$: $$ a_t \sim \pi( \cdot \mid s_t)$$.
 
-- **Parametrized Policy**: In deep RL we deal with parametrized policies, where the parameters are denoted by $$\theta$$. Hence we write $$ a_t \sim \pi_{\theta}(\cdot \mid s_t).$$.
+- **Parametrized Policy**: In deep RL we deal with parametrized policies, where the parameters are denoted by $$\theta$$. Hence we write $$ a_t \sim \pi_{\theta}(\cdot \mid s_t)$$.
 
 - **On-Policy Value Function**:  $$V^{\pi}(s)$$, which gives the expected return if you start in state $$s$$ and always act according to policy $$\pi$$:
 
@@ -83,7 +83,7 @@ An overview of the 2017 paper from OpenAI called Proximal Policy Optimization Al
 
 We compute an estimator of the policy gradient and plug it into a stochastic gradient ascent algorithm. A commonly used gradient estimator is
 
-$$ \hat{g} = \hat{E_t} \bigg( \nabla_{\theta} \log(\pi_{\theta} (a_t \mid s_t) \hat{A_t} \bigg)$$
+$$ \hat{g} = \hat{E_t} \bigg( \nabla_{\theta} \log \Big(\pi_{\theta} (a_t \mid s_t)\Big) \hat{A_t} \bigg)$$
 
 The hats over $$g$$ and $$E$$ denote that we empirically estimate the quantities over a batch of samples. Typically alternating between sampling and optimization. In this case we gradient extimate $$\hat{g}$$ is obtained by differentiating the loss function:
 
@@ -97,28 +97,28 @@ A typical method is Trust Region Policy Optimization (TRPO) which
 
 $$\begin{align*}
 \text{maximize} \: & \hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)} \hat{A_t} \bigg] \\ 
-\text{subject to} \: & \hat{E_t} [ KL[\pi_{\theta}(a_t \mid s_t) \mid \pi_{\theta_{old}}(a_t \mid s_t)]] \leq \delta
+\text{subject to} \: & \hat{E_t} \bigg[ KL \Big[ \pi_{\theta}(a_t \mid s_t) \mid \pi_{\theta_{old}}(a_t \mid s_t) \Big] \bigg] \leq \delta
 \end{align*}$$
 
 
 The theory behing TRPO suggests using a KL penalty and optimizing 
 
-$$\hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)} \hat{A_t} - \beta KL[\pi_{\theta}(a_t | s_t) | \pi_{\theta_{old}}(a_t | s_t)]] \bigg]  $$
+$$\hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)} \hat{A_t} - \beta KL[\pi_{\theta}(a_t | s_t) | \pi_{\theta_{old}}(a_t | s_t)] \bigg]  $$
 
 instead. The choice of $$\beta$$ is tricky and changes with every task.
 
 
 ### Clipped Surrogate Objective
 
-Let $$r_t(\theta)$$ denote the probability ratio $$r_t(\theta) = \frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)}$$. It follows that $$r(\thetha_{old})$$ = 1.
+Let $$r_t(\theta)$$ denote the probability ratio $$r_t (\theta) = \frac{\pi_{\theta} (a_t \mid s_t)}{ \pi_{\theta o}(a_t \mid s_t)}$$. It follows that $$r(\theta o) = 1 $$.
 
 TRPO maximazes a "surrogate" objective 
 
-$$L^{CPI}(\theta) =\hat{E_t} \bigg[\frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)} \hat{A_t} \bigg] = \hat{E_t} \big[r_t(\theta) \hat{A_t}\big]$$
+$$L^{CPI}(\theta) =\hat{E_t} \bigg[\frac{\pi_{\theta}(a_t | s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)} \hat{A_t} \bigg] = \hat{E_t} \big[r_t(\theta) \hat{A_t}\big]$$
 
 where CPI refers to Conservative Policy Iteration. Again this would have issues for large policy updates, which can be mitigated by clipping values of $$r_t(\theta) \hat{A_t} $$ that move too far away from 1.
 
-$$ L^{CLIP}(\theta) = \hat{E_t} \bigg[ min(r_t(\theta) \hat{A_t}, \text{clip}(r_t(\theta), 1- \epsilon, 1+\epsilon) \hat{A_t} \bigg]$$
+$$ L^{CLIP}(\theta) = \hat{E_t} \bigg[ \min \Big(r_t(\theta) \hat{A_t}, \text{clip}(r_t(\theta), 1- \epsilon, 1+\epsilon) \Big) \hat{A_t} \bigg]$$
 
 where $$\epsilon > 0$$ is a hyperparameter. Empirically $$\epsilon = 0.2$$ has been found to work well. What is the motivation behind this change?
 
