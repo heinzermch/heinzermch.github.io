@@ -122,6 +122,45 @@ $$ L^{CLIP}(\theta) = \hat{E_t} \bigg[ \min \Big(r_t(\theta) \hat{A_t}, \text{cl
 
 where $$\epsilon > 0$$ is a hyperparameter. Empirically $$\epsilon = 0.2$$ has been found to work well. What is the motivation behind this change?
 
+There are two terms inside the min:
+ - First: $$ r_t(\theta) \hat{A_t}$$ is the $$ L^{CPI}$$
+ - Second: $$ \text{clip}(r_t(\theta), 1- \epsilon, 1+\epsilon) \hat{A_t}$$ clips the probability ratio, i.e. it ensures that $$ r_t(\theta) \in [1- \epsilon, 1+\epsilon]$$.
+ 
+The minimum between the two terms ensure we take the lower bound (pessimistic estimate).
+
+
+![How clip function stops the update](/assets/images/rlhf_ppo_dpo/lclip_intuition.png)
+
+The figure above shows us how $$L^{\text{CLIP}}$$ is a lower bound on $$L^{\text{CPI}}$$.
+
+
+![L Clip as lower bound](/assets/images/rlhf_ppo_dpo/clip_lower_bound.png)
+
+
+## PPO Algorithm
+
+Most techniques for computing variance-reduced advantage function extimators make use of a laearned state-value function $$V(s)$$. If we are using a NN that shares parameters between the policy and value function, the loss function must use error terms for both tasks. Additionally the objective can be improved by adding an entropy bonus to ensure sufficient exploration. Combining these three terms gives:
+
+$$ L_t^{\text{CLIP + VF+S}}(\theta) = \hat{E_t} \bigg [ L^{\text{CLIP}}(\theta) - c_1 L_t^{\text{VF}}(\theta) + c_2S[\pi_{\theta}](s_t) \bigg]$$
+
+where $$c_1, c_2$$ are coefficients, $$S$$ denotes an entropy bonus and $$ L_t^{\text{VF}} $$ is a squared-error loss:
+
+$$ L_t^{\text{VF}} = (V_{\theta}(s_t) - V_t^{\text{target}})^2$$
+
+Because the paper was written for environments with longer episodes in mind, we would usually run the policy for $$T$$ timesteps (which is shorter than the episode length). In case of RLHF we usually have $$T = 1 = \text{episode length}$$.
+
+The full PPO algorithm is then
+
+```python
+for iteration=1, 2, . . . do 
+  for actor=1, 2, . . . , N do 
+    Run policy πθold in environment for T timesteps  
+    Compute advantage estimates A_1, . . . , A_T
+  end for
+  Optimize surrogate L wrt θ, with K epochs and minibatch size M ≤ N T  
+  θ_old ← θ 
+end for
+```
 
 ## Other
 
