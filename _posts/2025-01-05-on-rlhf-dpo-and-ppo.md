@@ -34,7 +34,7 @@ $$ V^{\pi}(s) = E_{\tau \sim \pi} \big(R(\tau) \mid s_0 = s \big)$$
 
 - **On-Policy Action-Value Function**:  $$Q^{\pi}(s,a)$$, which gives the expected return if you start in state $$s$$, take an arbitrary action $$a$$ (not necessarily from the policy $$\pi$$), and then afterwards act according to policy $$\pi$$:
 
- $$Q^{\pi}(s,a) = E_{\tau \sim \pi}{R(\tau)\left \mid s_0 = s, a_0 = a\right}$$
+ $$Q^{\pi}(s,a) = E_{\tau \sim \pi} \big(R(\tau) \mid s_0 = s, a_0 = a \big)$$
 
 - **Advantage Function**: The advantage function $$A^{\pi}(s,a)$$ corresponding to a policy $$\pi$$ describes how much better it is to take a specific action $$a$$ in state $$s$$, over randomly selecting an action according to $$\pi(\cdot \mid s)$$. The advantage function is defined by:
 
@@ -83,11 +83,11 @@ An overview of the 2017 paper from OpenAI called Proximal Policy Optimization Al
 
 We compute an estimator of the policy gradient and plug it into a stochastic gradient ascent algorithm. A commonly used gradient estimator is
 
-$$ \hat{g} = \hat{E_t} \big[ \nabla_\labrace\theta} \log(\pi_{\theta}(a_t \mid s_t)\hat{A_t}) \bigg\rbrace$$
+$$ \hat{g} = \hat{E_t} \bigg( \nabla_{\theta} \log(\pi_{\theta} (a_t \mid s_t) \hat{A_t} \bigg)$$
 
 The hats over $$g$$ and $$E$$ denote that we empirically estimate the quantities over a batch of samples. Typically alternating between sampling and optimization. In this case we gradient extimate $$\hat{g}$$ is obtained by differentiating the loss function:
 
-$$L^{PG}(\theta) = \hat{E_t} \bigg( \log(\pi_{\theta}(a_t \mid s_t)\hat{A_t})$$
+$$L^{PG}(\theta) = \hat{E_t} \bigg( \log \big(\pi_{\theta}(a_t \mid s_t) \big) \hat{A_t} \bigg)$$
 
 ### Trust Region Methods
 Unconstrained optimization has been problematic for large updates and can derail training. Trust region methods try to mitigate this by only updating within a small trusted region where we believe that the approximation of the objective function is reasonably accurate. How do we define the trusted region? By ensuring that the KL-Divergence between the original and the updated policy stays small.
@@ -96,8 +96,8 @@ A typical method is Trust Region Policy Optimization (TRPO) which
 
 
 $$\begin{align*}
-\text{maximize} & \hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)} \hat{A_t} \bigg] \\ 
-\text{subject to} & \hat{E_t} [ KL[\pi_{\theta}(a_t \mid s_t) \mid \pi_{\theta_{old}}(a_t \mid s_t)]] \leq \delta
+\text{maximize} \: & \hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)} \hat{A_t} \bigg] \\ 
+\text{subject to} \: & \hat{E_t} [ KL[\pi_{\theta}(a_t \mid s_t) \mid \pi_{\theta_{old}}(a_t \mid s_t)]] \leq \delta
 \end{align*}$$
 
 
