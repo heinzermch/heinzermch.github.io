@@ -230,15 +230,15 @@ We can now subsitute the result from the derivation for $$r(x,y)$$ into this equ
 $$\begin{align*} 
  p^*(y_1 \succ y_2 \mid x) &= \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg) \\   
  &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) + \beta \log(Z(x)) - (\beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) + \beta \log(Z(x))\Bigg) \\  
- &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg) \\
+ &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg) \\
  &= \frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)}
 \end{align*}$$
 
 DEBUG
-$$p^*(y_1 \succ y_2 \mid x) &= \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg)$$
-$$\sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) + \beta \log(Z(x)) - (\beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) + \beta \log(Z(x))\Bigg)$$
-$$\sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)$$
-$$\frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)}$$
+$$p^*(y_1 \succ y_2 \mid x) = \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg)$$
+
+$$\sigma \Bigg( \beta \log \bigg( \frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)} -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)$$
+
 
 This is all under assumption of the Bradley-Terry model, the paper also derives results for more general models.
 
