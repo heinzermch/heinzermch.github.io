@@ -199,26 +199,26 @@ The key insight is to replace the loss function over reward functions into a los
 
 We start from the same RL objective as prior work under a general reward function $$r$$
 
-$$\max_{\pi_{\theta}} E_{x \sim D, y \sim \pi_{\theta} ( \cdot \mid x)} \big(r_{\phi}(x,y) \big) -  \beta D_{KL} \big( \pi_{\theta} ( y \mid x) \mid \mid \pi_{ref}(y \mid x) \big)$$
+$$\max_{\pi_{\theta}} E_{x \sim D, y \sim \pi_{\theta} ( \cdot \mid x)} \big(r_{\phi}(x,y) \big) -  \beta D_{KL} \big( \pi_{\theta} ( y \mid x) \mid \mid \pi_{\text{ref}}(y \mid x) \big)$$
 
-where $$\beta$$ is a parameter controlling the deviation from the base reference policy $$\pi_{ref}$$
+where $$\beta$$ is a parameter controlling the deviation from the base reference policy $$\pi_{\text{ref}}$$
 
 The paper states that it is straightforward to show that the optimal solution to the equation above has the form
 
-$$ \pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{ref}(y \mid x) \exp\bigg(\frac{1}{\beta}r(x, y)\bigg)$$
+$$ \pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\bigg(\frac{1}{\beta}r(x, y)\bigg)$$
 
 for the partition function $$Z(x)$$ defined as
 
-$$ Z(x) = \Sigma_y \pi_{ref}(y \mid x) \exp \bigg( \frac{1}{\beta} r(x, y) \bigg)$$
+$$ Z(x) = \Sigma_y \pi_{\text{ref}}(y \mid x) \exp \bigg( \frac{1}{\beta} r(x, y) \bigg)$$
 
 Estimating this is impractical because we need to sum over all the possible answers in $$\Sigma_y$$ for each question $$x$$. However we can rearrange the equation for $$\pi_r(y \mid x)$$ to express the reward function in terms of its ressesponding optimal policy $$\pi_r$$, the reference policy $$\pi_{ref}$$ and the unknown partition function $$Z(\cdot)$$. 
 
 
 $$\begin{align*} 
- \pi_r(y \mid x) &= \frac{1}{Z(x)} \pi_{ref}(y \mid x) \exp\bigg(\frac{1}{\beta}r(x, y)\bigg)\\   
-\log(\pi_r(y \mid x)) &=  -\log(Z(x)) +  \log\big(\pi_{ref}(y \mid x)\big) + \frac{1}{\beta}r(x, y)\\  
-\frac{1}{\beta}r(x, y) &=  \log(Z(x)) - \log\big(\pi_{ref}(y \mid x)\big) + \log\big(\pi_r(y \mid x)\big)\\
-r(x, y) &= \beta \log\bigg(\frac{\pi_r(y \mid x))}{\pi_{ref}(y \mid x)}\bigg) + \beta \log(Z(x))
+ \pi_r(y \mid x) &= \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\bigg(\frac{1}{\beta}r(x, y)\bigg)\\   
+\log(\pi_r(y \mid x)) &=  -\log(Z(x)) +  \log\big(\pi_{\text{ref}}(y \mid x)\big) + \frac{1}{\beta}r(x, y)\\  
+\frac{1}{\beta}r(x, y) &=  \log(Z(x)) - \log\big(\pi_{\text{ref}}(y \mid x)\big) + \log\big(\pi_r(y \mid x)\big)\\
+r(x, y) &= \beta \log\bigg(\frac{\pi_r(y \mid x))}{\pi_{\text{ref}}(y \mid x)}\bigg) + \beta \log(Z(x))
 \end{align*}$$
 
 Now we can apply this reparametrization to the ground-truth reward $$r^*$$ and corresponding optimal model $$\pi^*$$. The Bradley-Terry model only depends on the difference of rewards between two completions
@@ -229,29 +229,23 @@ We can now subsitute the result from the derivation for $$r(x,y)$$ into this equ
 
 $$\begin{align*} 
  p^*(y_1 \succ y_2 \mid x) &= \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg) \\   
- &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) + \beta \log(Z(x)) - (\beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) + \beta \log(Z(x))\Bigg) \\  
- &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg) \\
- &= \frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)}
+ &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{\text{ref}}(y_1 \mid x)}\bigg) + \beta \log(Z(x)) - (\beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{\text{ref}}(y_2 \mid x)}\bigg) + \beta \log(Z(x))\Bigg) \\  
+ &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{\text{ref}}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{\text{ref}}(y_2 \mid x)}\bigg) \Bigg) \\
+ &= \frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{\text{ref}}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{\text{ref}}(y_2 \mid x)}\bigg) \Bigg)}
 \end{align*}$$
-
-DEBUG
-$$p^*(y_1 \succ y_2 \mid x) = \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg)$$
-
-$$\sigma \Bigg( \beta \log \bigg( \frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)} -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)$$
-
 
 This is all under assumption of the Bradley-Terry model, the paper also derives results for more general models.
 
 Now that we have the probability of human perference data in terms of the optimal policy rather than the reward model, we can formulate a maximum likelihood objective for a parametrized policy $$ \pi_{\theta}$$. The policy objective becomes:
 
-$$ L_{DPO}(\pi_{\phi}, \pi_{ref}) = -E_{(x, y_w, y_l) \sim D} \Bigg [\log \sigma \bigg(\beta \log\Big(\frac{\pi_{\phi}(y_w \mid x))}{\pi_{ref}(y_w \mid x)} -  \beta \log\big(\frac{\pi_{\phi}(y_l \mid x))}{\pi_{ref}(y_l \mid x)}\Big) \bigg) \Bigg]$$
+$$ L_{DPO}(\pi_{\phi}, \pi_{\text{ref}}) = -E_{(x, y_w, y_l) \sim D} \Bigg [\log \sigma \bigg(\beta \log\Big(\frac{\pi_{\phi}(y_w \mid x))}{\pi_{\text{ref}}(y_w \mid x)} -  \beta \log\big(\frac{\pi_{\phi}(y_l \mid x))}{\pi_{\text{ref}}(y_l \mid x)}\Big) \bigg) \Bigg]$$
 
 ## What does the DPO update do?
 
 To understand DPO better it is useful to take a look a the gradient of the loss function $$L_{DPO}$$. The gradient w.r.t. the parameters $$\theta$$ can be written as:
 
 
-$$\nabla_{\theta} L_{DPO}(\pi_{\theta}, \pi_{ref}) = -\beta E_{(x, y_w, y_l) \sim D} \Bigg[ \sigma \Big(\hat{r}_{\theta}(x, y_l) - \hat{r}_{\theta}(x, y_w)\Big) \Big(\nabla_{\theta}\log \pi(y_w \mid x) - \nabla_{\theta} \log \pi(y_l \mid x) \Big) \Bigg]$$
+$$\nabla_{\theta} L_{DPO}(\pi_{\theta}, \pi_{\text{ref}}) = -\beta E_{(x, y_w, y_l) \sim D} \Bigg[ \sigma \Big(\hat{r}_{\theta}(x, y_l) - \hat{r}_{\theta}(x, y_w)\Big) \Big(\nabla_{\theta}\log \pi(y_w \mid x) - \nabla_{\theta} \log \pi(y_l \mid x) \Big) \Bigg]$$
 
 There are three different components in this loss:
 
@@ -263,10 +257,10 @@ There are three different components in this loss:
 
 The DPO pipeline is as follows:
 
-1. Sample completions $$y_1, y_2 \sim \pi_{ref}(\cdot \mid x)$$ for every prompt $$x$$ and label with humans to create preferences.
-2. Optimize the language model $$\pi_{\theta}$$ to minimize $$L_{DPO}$$ for the given $$\pi_{ref}$$, $$D$$ and $$\beta$$.
+1. Sample completions $$y_1, y_2 \sim \pi_{\text{ref}}(\cdot \mid x)$$ for every prompt $$x$$ and label with humans to create preferences.
+2. Optimize the language model $$\pi_{\theta}$$ to minimize $$L_{DPO}$$ for the given $$\pi_{\text{ref}}$$, $$D$$ and $$\beta$$.
 
-We would initialize $$\pi_{ref}$$ as $$\pi_{SFT}$$.
+We would initialize $$\pi_{\text{ref}}$$ as $$\pi_{SFT}$$.
 
 
 
