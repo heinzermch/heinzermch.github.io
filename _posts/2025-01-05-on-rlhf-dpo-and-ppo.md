@@ -199,7 +199,7 @@ The key insight is to replace the loss function over reward functions into a los
 
 We start from the same RL objective as prior work under a general reward function $$r$$
 
-$$\max_{\pi_{\theta}} E_{x \sim D, y \sim \pi_{\theta} ( \cdot \mid x)} \big(r_{\phi}(x,y) \big) -  \beta D_{KL} \big( \pi_{\theta} ( y \mid x) \big\mid \big\mid \pi_{ref}(y \mid x) \big)$$
+$$\max_{\pi_{\theta}} E_{x \sim D, y \sim \pi_{\theta} ( \cdot \mid x)} \big(r_{\phi}(x,y) \big) -  \beta D_{KL} \big( \pi_{\theta} ( y \mid x) \mid \mid \pi_{ref}(y \mid x) \big)$$
 
 where $$\beta$$ is a parameter controlling the deviation from the base reference policy $$\pi_{ref}$$
 
@@ -209,7 +209,7 @@ $$ \pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{ref}(y \mid x) \exp\bigg(\frac{1}{\beta
 
 for the partition function $$Z(x)$$ defined as
 
-$$ Z(x) = \Big\Sigma_y \pi_{ref}(y \mid x) \exp \bigg(\frac{1}{\beta} r(x, y) \bigg)$$
+$$ Z(x) = \Sigma_y \pi_{ref}(y \mid x) \exp \bigg( \frac{1}{\beta} r(x, y) \bigg)$$
 
 Estimating this is impractical because we need to sum over all the possible answers in $$\Sigma_y$$ for each question $$x$$. However we can rearrange the equation for $$\pi_r(y \mid x)$$ to express the reward function in terms of its ressesponding optimal policy $$\pi_r$$, the reference policy $$\pi_{ref}$$ and the unknown partition function $$Z(\cdot)$$. 
 
@@ -231,7 +231,7 @@ $$\begin{align*}
  p^*(y_1 \succ y_2 \mid x) &= \sigma\Bigg(r^*(x, y_1) - r^*(x, y_2)\Bigg) \\   
  &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) + \beta \log(Z(x)) - (\beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) + \beta \log(Z(x))\Bigg) \\  
  &= \sigma\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg) \\
- &= \frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)}
+ &= \frac{1}{1+\exp\Bigg(\beta \log\bigg(\frac{\pi^*(y_1 \mid x))}{\pi_{ref}(y_1 \mid x)}\bigg) -  \beta \log\bigg(\frac{\pi^*(y_2 \mid x))}{\pi_{ref}(y_2 \mid x)}\bigg) \Bigg)}
 \end{align*}$$
 
 This is all under assumption of the Bradley-Terry model, the paper also derives results for more general models.
