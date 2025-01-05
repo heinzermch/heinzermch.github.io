@@ -3,7 +3,7 @@ layout: post
 author: Michael Heinzer
 title:  "On RLHF, DPO And PPO"
 description: A quick overview on finetuning LLMs beyond classification and regression.
-date:   2025-01-05 18:00:00 +0530
+date:   2025-01-01 18:00:00 +0530
 categories: LLMs SFT RLHF DPO PPO ReinforcementLearning
 comments: yes
 published: true
