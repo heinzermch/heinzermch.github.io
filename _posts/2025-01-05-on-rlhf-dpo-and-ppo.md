@@ -1,23 +1,20 @@
 ---
 layout: post
 author: Michael Heinzer
-title:  "On RLHF, DPO And PPO"
+title:  "Finetuning Beyond SFT - On PPO, DPO and RLHF"
 description: A quick overview on finetuning LLMs beyond classification and regression.
 date:   2025-01-05 18:00:00 +0530
 categories: LLMs SFT RLHF DPO PPO ReinforcementLearning
 comments: yes
-published: false
+published: true
 ---
-Intro
+This post does a quick review of how Proximal Policy Optimization (PPO) and Direct Preference Optimization (DPO) work, and what their relationship to Reinforcement Learning from Human Feedback (RLHF) is. Especially RLHF has become popular over the past two years for fine-tuning networks beyond simple SFT. This phase is often called alignment, where we train a model to follow human preferences in a wide variety of tasks.
 
-Want to understand supervised fine tuning (SFT) beyond classification and regression problems. Not yet touching on the most recent topics of RL reasoning that used for OpenAIs o1 type of model.
-
-This is reinforcement learning, gradient not directly available from a loss function like cross-entropy or MSE.
-
+Unlike in classification or regression, the model can not simply learn one correct answer during RLHF. Simply because it does not exist for many tasks that LLM have to do (ex: "Give me a recipe for cooking that has chicken").
 
 ## Basic Concepts and Notation
 
-Before we start, let us quickly repeat some basic concepts and their notation. Readers familiar with the topic may skip this section. This is not meant to be an introduction to probability theory or other mathematical concepts, only a quick refresh of what we will need later on.
+Before we start, let us quickly repeat some basic concepts and their notation. Readers familiar with the topic may skip this section.
 
 - **Reinforcement Learning**: In reinforcement learning an agent is taking actions $$a_t$$ in an environment in state $$s_t$$ and getting rewards $$r_t$$.
 
@@ -49,12 +46,11 @@ Often we consider $$p$$ to be the true distribution and $$q$$ the approximation 
 
 
 
-
-
-
 # Reinforcement Learning from Human Feedback
 
-A typical RLHF pipeline for LLMs nowadays includes four phases:
+Why do we need RLHF? Because LLMs are pre-trained on a large corpus of text (usually the entire internet) which contain a lot of mixed quality content and commonly held misbeliefs. In this phase of the training we want to bias the model towards higher quality output, not the median quality of a text on the internet. RLHF is also useful for cases where there is often no single right answer, we only give vague directions towards a better formulated response.
+
+How does a typical RLHF training pipeline for LLMs look today?
 
 1. Supervised fine-tuning: of a pre-trained LLM on high quality data for the tasks of interest.
 2. Preferrence Rating: the SFT model is prompted with promts $$x$$ to produce pairs of answers $$(y_1, y_2) \sim \pi^{SFT}(\cdot \mid x)$$. These pairs are presented to human raters which will express preference for one answer over the other $$y_w \succ y_l \mid x$$ where $$y_w$$ and $$y_l$$ denote the preferred and the dispreferred completion of the prompt $$x$$.
@@ -73,16 +69,12 @@ The process of RLHF optimization is shown on the left.
 
 PPO is used to finetune the baseline LLM based on rewards by the reward model. PPO is designed to be more stable and efficient than traditional policy gradient methods.
 
-DPO is an alternative to use PPO within RLHF. Simplify the fine-tuning process by directly optimizing the LLM based on the human ratings, without training the reward model. Reformulate the RL problem into a simpler classification problem, simplifying the answer.
-
-RLHF is for cases where there is often no single right answer, we only give vague directions towards a better formulated response.
-
-Note: Why train a reward model first and then use the imperfect model to train and LLM? Do we lose some information in that process that could be directly propagated to the LLM? Or do we gain more by having more samples? Assuming the reward model is much more capable (larger) than the LLM we train, does it make sense to use it then? Reminds me of synthetic data generation or pseudo labeling, distillation process.
+DPO is an alternative to use PPO within RLHF. It simplifies the fine-tuning process by directly optimizing the LLM based on the human ratings, without training a reward model. This work by reformulating the RL problem into a simpler classification problem, simplifying the training process.
 
 
 # Proximal Policy Optimization
 
-An overview of the 2017 paper from OpenAI called Proximal Policy Optimization Algorithms. This is pre-LLM craze, so the context for this paper is playing games, and that is what is evaluated on.
+This section is an overview of the 2017 paper from OpenAI called Proximal Policy Optimization Algorithms. This is pre-LLM hype, so the context for this paper is playing games.
 
 
 ## Background
@@ -93,15 +85,14 @@ We compute an estimator of the policy gradient and plug it into a stochastic gra
 
 $$ \hat{g} = \hat{E_t} \bigg( \nabla_{\theta} \log \Big(\pi_{\theta} (a_t \mid s_t)\Big) \hat{A_t} \bigg)$$
 
-The hats over $$g$$ and $$E$$ denote that we empirically estimate the quantities over a batch of samples. Typically alternating between sampling and optimization. In this case we gradient extimate $$\hat{g}$$ is obtained by differentiating the loss function:
+The hats over $$g$$ and $$E$$ denote that we empirically estimate the quantities over a batch of samples. Typically alternating between sampling and optimization. In this case the gradient estimate $$\hat{g}$$ is obtained by differentiating the loss function:
 
 $$L^{PG}(\theta) = \hat{E_t} \bigg( \log \big(\pi_{\theta}(a_t \mid s_t) \big) \hat{A_t} \bigg)$$
 
 ### Trust Region Methods
-Unconstrained optimization has been problematic for large updates and can derail training. Trust region methods try to mitigate this by only updating within a small trusted region where we believe that the approximation of the objective function is reasonably accurate. How do we define the trusted region? By ensuring that the KL-Divergence between the original and the updated policy stays small.
+Unconstrained optimization is problematic for large updates and can derail the training. Trust region methods try to mitigate this by only updating within a small trusted region where we believe that the approximation of the objective function is reasonably accurate. How do we define the trusted region? By ensuring that the KL-Divergence between the original and the updated policy stays small.
 
-A typical method is Trust Region Policy Optimization (TRPO) which
-
+A typical method is Trust Region Policy Optimization (TRPO) which is a constrained optimization:
 
 $$\begin{align*}
 \text{maximize} \: & \hat{E_t} \bigg[ \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)} \hat{A_t} \bigg] \\ 
@@ -134,7 +125,7 @@ There are two terms inside the min:
  - First: $$ r_t(\theta) \hat{A_t}$$ is the $$ L^{CPI}$$
  - Second: $$ \text{clip}(r_t(\theta), 1- \epsilon, 1+\epsilon) \hat{A_t}$$ clips the probability ratio, i.e. it ensures that $$ r_t(\theta) \in [1- \epsilon, 1+\epsilon]$$.
  
-The minimum between the two terms ensure we take the lower bound (pessimistic estimate).
+The minimum between the two terms ensures we take the lower bound (pessimistic estimate).
 
 
 ![How clip function stops the update](/assets/images/rlhf_ppo_dpo/lclip_intuition.png)
@@ -170,29 +161,11 @@ for iteration=1, 2, . . . do
 end for
 ```
 
-## Other
-
-Optimize a surrogate objective function using SGA (ascent instead of descent. Instead of one gradient update per sample, do minibatch epoch updates. Previous work Trust Region Policy Optimization (TRPO).
-
-Using NN that shares parameters between policy and value function.
-
-Use loss function that combines policy surrogate and value function error term
-
-PPO uses only first order optimization
-
-Note: Paper was written in a more general form, for length T trajectory segments. In case of LLMs we would only use T=1. We generate an answer and get a reward immediately.
-
-What does Actor Critic style mean? Actor is LLM and Critic the reward model.
-
-Can I add some code here to show an implementation?
-
-Concepts: Stochastic Gradient Ascent, Policy Gradient Methods, TRPO, conjugate gradient algorithm, variance-reduced advantage function estimators, learned state-value function V(s).
-
 # Direct Preference Optimization
 
-The goal of DPO is to replace the RLHF process with PPO by something simpler that does not require a reward model. This approach leverages a particular choice of reward modle parametrization to enable the extraction of the optimal policy in closed form, without an RL training loop.
+The goal of DPO is to replace the RLHF process that includes PPO by something simpler that does not require a reward model. This approach leverages a particular choice of reward model parametrization to enables the extraction of the optimal policy in closed form, without an RL training loop.
 
-The key insight is to replace the loss function over reward functions into a loss function over policies. The policy network will represent both the language model and the implicit reward.
+The key insight is to replace the loss function over reward functions with a loss function over policies. The policy network will represent both the language model and the implicit reward.
 
 ## Deriving the DPO objective
 
@@ -201,9 +174,9 @@ We start from the same RL objective as prior work under a general reward functio
 
 $$\max_{\pi_{\theta}} E_{x \sim D, y \sim \pi_{\theta} ( \cdot \mid x)} \big(r_{\phi}(x,y) \big) -  \beta D_{KL} \big( \pi_{\theta} ( y \mid x) \mid \mid \pi_{\text{ref}}(y \mid x) \big)$$
 
-where $$\beta$$ is a parameter controlling the deviation from the base reference policy $$\pi_{\text{ref}}$$
+where $$\beta$$ is a parameter controlling the deviation from the reference policy $$\pi_{\text{ref}}$$.
 
-The paper states that it is straightforward to show that the optimal solution to the equation above has the form
+We can show that the optimal solution to the equation above has the form
 
 $$ \pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\bigg(\frac{1}{\beta}r(x, y)\bigg)$$
 
@@ -266,17 +239,20 @@ We would initialize $$\pi_{\text{ref}}$$ as $$\pi_{SFT}$$.
 
 # Conclusion
 
-(Quick section why we want RLHF for LLMs, bias model towards rare high quality output, not necessary median opinions or ability)
+We have seen two different approaches to align models with human preferences. Wheras PPO is more general than DPO, it is also much harder to implement because it requires an extra training stage.
 
-Bradley-Terry model?? Placket-Luce ranking models
+There is some evidence (see the paper "Unpacking DPO and PPO: Disentangling Best Practices for Learning from Preference Feedback") that PPO leads to slightly higher quality results than DPO.
 
-Single stage policy learning approach.
+## Final Thoughts
+
+Some follow up questions and remarks for my future self or experts in this field:
+
+* In PPO, how powerful should the reward model be? Can we gain a lot by having a large reward model and guide a smaller model? Is this problem similar to distillation?
+* Do we lose any information when we train a reward model as opposed to directly use the human preference data? The paper suggests not but I'm not convinced by single digit improvements. I've generally found it preferrable to directly optimize for whatever the final goal is, additional steps tend to dillute the signal.
+* The paper comparing PPO and DPO suggests a slight advantage for PPO, but the PPO training process is much more involved. If we invested the same amount of time/effort/compute into improving the data, would we get better results for DPO?
+* Both approaches still seem bounded by human performance, these approaches are unlikely to yield superhuman performance in a task (unlike AlphaZero).
 
 
-
-Note: This still seems bounded by best human performance on a task, even if it can do many tasks. Getting the required data is another headache.
-
-TODO.
 
 ## References
 
