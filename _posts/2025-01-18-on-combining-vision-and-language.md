@@ -55,6 +55,9 @@ Predicting the exact words in an image-text pair was found to be wasteful in com
 
 Given a batch of $$N$$ (image, text) pairs, CLIP is trianed to predict which of the $$N \times N$$ possible (image, text) pairs accross a batch occured. To do this the model needs an image and text encoder that embedd the inputs in the same space. The goal is then to maximize the cosine similarity between the image and text embeddings in the $$N$$ pairs, while minimizing the cosine similarity of the $$N^2-N$$ incorrect pairings. This is done with a symmetirc cross entropy loss over all the similarity scores.
 
+
+![Clip pre-training setup matrix of text and image embeddings.](/assets/images/computer_vision_and_language/03_clip_human_comparison.png)
+
 TODO: Formula
 
 First popularized by Oord et al (2018) as the InfoNCE loss.
@@ -108,7 +111,7 @@ The paper presents many results on different tasks, that we will not go into her
 
 One interesting result was comparing CLIP to zero, one and two shot humans.
 
-TODO: Image
+![How CLIP compares to humans in zero, one and two shot regime.](/assets/images/computer_vision_and_language/03_clip_human_comparison.png)
 
 interesting point noted: humans know what they don't know, and can generalize much better from one example, large jump in accuracy. This point is still valid for LLMs today in 2025. They can't tell us what they don't know and tend to hallucinate instead. Once could argue that they are better these days with generalizing from few examples in few-shot prompts, but that has it's limits as well as any practitioner can tell.
 
@@ -126,7 +129,8 @@ The main contribution from paper is a strategy they call contrastive tuning. It 
 
 This achieves better results than from scratch training like CLIP.
 
-TODO: Figure 1 from paper comparing performances
+
+![Figure 1 from paper comparing performances of previous SOTA methods.](/assets/images/computer_vision_and_language/04_lit_performance_comparison.png)
 
 The paper also tests multiple variants:
 
@@ -137,7 +141,7 @@ The paper also tests multiple variants:
 The image denotes this in L (locked and pre-trained), U (unlocked and pre-trained) and u (unlocked and randomly initialized).
 
 
-TODO: Figure 2 from the paper.
+![Figure 2 from paper showing which parts of the model can be locked or unlocked at same time.](/assets/images/computer_vision_and_language/05_lit_locking_options.png)
 
 
 The two models are trained with a contrastive loss as in CLIP. They ablate if it should be calculated on a per accelerator basis or computed jointly accross devices. The second version consistelty gives better results. This intuitively makes sense and we will see in later papers that a certain batch size is necessary for the contrastive loss to work well.
@@ -218,7 +222,8 @@ Contrastive learning in the form of the softmax loss typically uses data prallel
 
 For the sigmoid loss a more efficient implementation exists that avoids these issues. If we assume that each device holds $$b = \frac{\mid B \mid}{D}$$ examples, then for each example we have one positive and $$b-1$$ negatives on the device. Then the text representations are permtuted among the devices to calculate $$b$$ negative examples with each step. The loss is calculated on a per device basis for each local batch $$b$$ and summed up across devices. The process if visualized in the following image for three devices and four examples per device:
 
-TODO: Image
+![Figure 1 from paper showing how the text embeddings get propageted to calculate the complete loss.](/assets/images/computer_vision_and_language/06_siglip_advantage_on_tpu.png)
+
 
 The peak memory cost is reduced from $$ \mid B \mid^2$$ to $$ b^2$$, and $$b$$ can be kept constant while scaling up accelerators. This allows much larger batch sizes than the original cross-entropy loss. 
 
@@ -232,14 +237,53 @@ There is a lot more engineering details and considerations in the paper that I d
 
 
 ## SigLIP 2: Multilingual Vision-Language Encoders - 2025
+This paper extends the original paper in multiple ways:
+
+* caption based pre-training
+* self-supervised losses
+* online data curation
+
+which leads to better performance on dense prediction tasks. Additionally there are versions which support different resolutions and aspect ratios.
+
+Sadly the paper is devoid of any explicit loss functions, those have to be collected from the original papers that the authors mention:
+
+* LocCa: Visual pretraining with location-aware captioners.
+* SILC: Improving vision language pretraining with self-distillation
+* TIPS: Text-image pretraining with spatial awareness 
 
 
+![Figure 1 from paper showing which additional parts are added to the training process compared to the original SigLip.](/assets/images/computer_vision_and_language/07_siglip2_losses_and_helper_parts_of_model.png)
+
+## New Training Regime
+
+The training process builds on the original SigLIP process but adding self-distillation and masked predicition tasks. This is done in a staged approach and with multiple loss functions.
+
+*SigLIP loss*
+
+As described in the chapter above, not going into details here. Pairwise binary classification loss.
+
+*LocCa loss*
+
+LocCa trains for automatic referring expression predicition (bounding box predicition for specific image regions) and grounded captioning (prediciting region specific captions given BBox coordinates).
+
+*Local to Global consistency loss - SLIC*
+The vision encoder becomes the student network which gets a partial local view of the training image, and is trained to match the teachers representation. The teacher saw the full image. The teacher is an exponential moving average of the students parameters.
+
+
+* Masked Prediction Objective - TIPS*
+50% of the embedded image patches in the student network are replaced with mask tokens. The student then has to match the features from the teacher at the masked location.
+
+This loss is applied to per-patch features rathern than the pooled image-level representations. Both the student and the teacher see the same global view of the image.
+
+
+The latter two losses are only added at 80% of the training process. Additionally they are only applied to augmented images, not the original one.
 
 
 
 
 # Conclusion
 
+We saw a couple of papers and interesting ideas from the CLIP research branch that show us how to train state of the art image encoders in 2025. Mainly by using unsupervised or semi-supervised training methods together with large amounts of noisy data and lots of compute.
 
 ## Final Thoughts
 
@@ -253,12 +297,13 @@ Some follow up questions and remarks for my future self or experts in this field
 
 A list of resources used to write this post, also useful for further reading:
 
-- [Proximal Policy Optimization Algorithms - John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov](https://arxiv.org/abs/1707.06347) for the original DPO paper by OpenAI.
- 
-- [Direct Preference Optimization: Your Language Model is Secretly a Reward Model - Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, Chelsea Finn](https://arxiv.org/abs/2305.18290) for the DPO paper by Stanford.
-- [Unpacking DPO and PPO: Disentangling Best Practices for Learning from Preference Feedback - Hamish Ivison, Yizhong Wang, Jiacheng Liu, Zeqiu Wu, Valentina Pyatkin, Nathan Lambert, Noah A. Smith, Yejin Choi, Hannaneh Hajishirzi](https://arxiv.org/abs/2406.09279) for a paper that compares DPO and PPO on different tasks.
-- [Preference fine-tuning API by OpenAI](https://platform.openai.com/docs/guides/fine-tuning#preference) for an example of an FT API.
-- [Introduction to RL](https://spinningup.openai.com/en/latest/spinningup/rl_intro.html) by OpenAI Spinning UP.
+- [Learning Transferable Visual Models From Natural Language Supervision - Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, Ilya Sutskever](https://arxiv.org/abs/2103.00020) for the CLIP paper that started it all.
+- [LiT: Zero-Shot Transfer with Locked-image text Tuning - Xiaohua Zhai, Xiao Wang, Basil Mustafa, Andreas Steiner, Daniel Keysers, Alexander Kolesnikov, Lucas Beyer](https://arxiv.org/abs/2111.07991) for the follow up paper where only one part is tuned.
+- [Sigmoid Loss for Language Image Pre-Training - Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, Lucas Beyer](https://arxiv.org/abs/2303.15343) for the SigLIP paper that introduced the simplified loss and many valuable open source models.
+- [SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features - Michael Tschannen, Alexey Gritsenko, Xiao Wang, Muhammad Ferjad Naeem, Ibrahim Alabdulmohsin, Nikhil Parthasarathy, Talfan Evans, Lucas Beyer, Ye Xia, Basil Mustafa, Olivier Hénaff, Jeremiah Harmsen, Andreas Steiner, Xiaohua Zhai](https://arxiv.org/abs/2502.14786) for the follow up to the original SigLIP paper.
+- [LocCa: Visual Pretraining with Location-aware Captioners - Bo Wan, Michael Tschannen, Yongqin Xian, Filip Pavetic, Ibrahim Alabdulmohsin, Xiao Wang, André Susano Pinto, Andreas Steiner, Lucas Beyer, Xiaohua Zhai](https://arxiv.org/abs/2403.19596) for the LocCa loss used in SigLIP2. 
+- [SILC: Improving Vision Language Pretraining with Self-Distillation - Muhammad Ferjad Naeem, Yongqin Xian, Xiaohua Zhai, Lukas Hoyer, Luc Van Gool, Federico Tombari](https://arxiv.org/abs/2310.13355) for the SLIC loss used in the SigLIP2 paper.
+- [TIPS: Text-Image Pretraining with Spatial Awareness - Kevis-Kokitsi Maninis, Kaifeng Chen, Soham Ghosh, Arjun Karpur, Koert Chen, Ye Xia, Bingyi Cao, Daniel Salz, Guangxing Han, Jan Dlabal, Dan Gnanapragasam, Mojtaba Seyedhosseini, Howard Zhou, Andre Araujo](https://arxiv.org/abs/2410.16512) for the TIPS loss used in the SigLIP2 paper.
 
 
 ## Comments
