@@ -113,7 +113,8 @@ $$ L_{SCE}(y, \hat{y}) = -\frac{1}{2} \sum_{i=1}^{C} \left[ y_i \log(\hat{y}_i) 
 
 - **InfoNCE loss**: Introduced by van der Oord et al in their paper [Representation Learning with Contrastive Predictive Coding](https://arxiv.org/abs/1807.03748). We want to maximize the mutual information between two original signals $$x$$ and $$c$$ defined as
 
-$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)}$$.
+
+$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)}$$
 
 We want to model the density ratio of the signals as
 
@@ -197,13 +198,13 @@ The paper uses a simple prompt template "A photo of a {label}" as a default. Thi
 
 Another option to increase performance is to ensemble over many different context prompts, which lead to an improvement of 3.5% over the default prompt.
 
-The paper presents many results on different tasks that we will not go into here. One of the main take-aways is that CLIP features outperform the features of an ImageNet pre-trained model on a wide variety of datasets. They tested on 27 tasks. In general CLIP features are more robust to task shift compared to ImageNet models.
+The paper presents many results on different tasks that we will not get into here. One of the main take-aways is that CLIP features outperform the features of an ImageNet pre-trained model on a wide variety of datasets. They are also more robust to task shift compared to ImageNet models.
 
 One interesting result was comparing CLIP to zero, one and two shot humans.
 
 ![How CLIP compares to humans in zero, one and two shot regime.](/assets/images/computer_vision_and_language/03_clip_human_comparison.png)
 
-interesting point noted: humans know what they don't know, and can generalize much better from one example, large jump in accuracy. This point is still valid for LLMs today in 2025. They can't tell us what they don't know and tend to hallucinate instead. One could argue that they are better these days with generalizing from few examples in few-shot prompts, but that has its limits as well as any practitioner can tell.
+Humans know what they don't know, and can generalize much better from one example, as evidenced by the large jump in accuracy. This point is still valid for LLMs today in 2025. They can't tell us what they don't know and tend to hallucinate instead. One could argue that they are better these days with generalizing from few examples in few-shot prompts, but that has its limits as well as any practitioner can tell.
 
 # Sigmoid Language Image Pretraining - 2022 to 2025
 
@@ -215,7 +216,7 @@ The paper presents a contrastive tuning method to align image and text models, w
 
 
 
-The main contribution from paper is a strategy they call contrastive tuning. It consists of only tuning the text tower while using a pre-trained image backbone. This is called locked-image tuning because the image tower is frozen during training (locked).
+The main contribution from paper is a strategy they call contrastive tuning. It consists of only tuning the text tower while using a pre-trained image backbone. This is called locked-image tuning because the image tower is frozen (locked) during training.
 
 This achieves better results than from scratch training like CLIP.
 
@@ -239,6 +240,7 @@ The two models are trained with a contrastive loss as in CLIP. They ablate if it
 Contrastive pre-training can be viewed as learning two tasks at the same time:
 
 1) Learning an image embedding
+
 2) Learning a text embedding to align with image embedding space.
 
 Contrastive pre-training works well for both of these tasks but might not be the optimal approach, hence these experiments.
@@ -272,7 +274,7 @@ For:
 
 The softmax loss for contrastive learning is: 
 
-$$ L_{softmax} = \frac{1}{2 N} \sum_{i=1}^{N} \Bigg( \log \frac{e^{t x_i y_i}{\sum^{N}_{j=1} e^{t x_i y_j}} +   \log \frac{e^{t x_i y_i}{\sum^{N}_{j=1} e^{t x_j y_i}} \Bigg)$$
+$$ L_{softmax} = \frac{1}{2N} \sum_{i=1}^{N} \Bigg( \log \frac{e^{t x_i y_i}}{\sum^{N}_{j=1} e^{t x_i y_j}} +   \log \frac{e^{t x_i y_i}}{\sum^{N}_{j=1} e^{t x_j y_i}} \Bigg)$$
 
 
 The first part in the sum is image to text softmax, the second is text to image softmax. Note, due to the asymmetry of the softmax loss, the normalization is independently performed two times: across images and across texts.
@@ -286,7 +288,9 @@ There is a new bias term $$b$$ in this loss to correct for the heavy imbalance o
 * $$t'= \log(10)$$ for the temperature $$t$$
 * $$b = -10$$ for the bias $$b$$.
 
-This assures that the training starts close to the prior and does not require over-correction. Note: what is the prior here?
+This assures that the training starts close to the prior and does not require over-correction. 
+
+Question: what is the prior here?
 
 The pseudocode implementation of this loss is:
 
@@ -317,7 +321,7 @@ The peak memory cost is reduced from $$ N^2$$ to $$ b^2$$, and $$b$$ can be kept
 
 There is a lot more engineering details and considerations in the paper that I don't want to go into too many details here:
 
-* SigLIP works better for smaller batch sizes, but at larger batch sizes like 32k softmax loss catches up. Larger batch sizes make more sense if training for longer, on ImageNet 0-shot transfer.
+* SigLIP works better for smaller batch sizes, but at larger batch sizes like 32k softmax loss catches up. Larger batch sizes make more sense if training for longer, on ImageNet zero-shot transfer.
 * Increased batch size leads to increased training instability due to spikes in gradient norm, decreasing $$\beta_2$$ momentum helps.
 * Loss paradigm: softmax "pick the right class" vs. sigmoid "rate this pair".
 * Sigmoid loss allows to remove negatives from the training process, the only way to not decrease performance significantly is to keep the "hard examples". Which intuitively makes the most sense, since learning is done on these. Here by hard examples we mean examples where the model makes large mistakes.
@@ -346,19 +350,21 @@ Sadly the paper is devoid of any explicit loss functions, those have to be colle
 
 The training process builds on the original SigLIP process by adding self-distillation and masked prediction tasks. This is done in a staged approach and with multiple loss functions.
 
-*SigLIP loss*
+**SigLIP loss**
 
-As described in the chapter above, not going into details here. Pairwise binary classification loss.
+As described in the chapter above. Pairwise binary classification loss.
 
-*LocCa loss*
+**LocCa loss**
 
 LocCa trains for automatic referring expression prediction (bounding box prediction for specific image regions) and grounded captioning (predicting region specific captions given BBox coordinates).
 
-*Local to Global consistency loss - SLIC*
+**Local to Global consistency loss - SLIC**
+
 The vision encoder becomes the student network which gets a partial local view of the training image, and is trained to match the teachers representation. The teacher saw the full image. The teacher is an exponential moving average of the students parameters.
 
 
-* Masked Prediction Objective - TIPS*
+**Masked Prediction Objective - TIPS**
+
 50% of the embedded image patches in the student network are replaced with mask tokens. The student then has to match the features from the teacher at the masked location.
 
 This loss is applied to per-patch features rather than the pooled image-level representations. Both the student and the teacher see the same global view of the image.
@@ -369,7 +375,7 @@ The latter two losses are only added at 80% of the training process. Additionall
 
 # Conclusion
 
-We saw a couple of papers and interesting ideas from the CLIP research branch that show us how to train state of the art image encoders in 2025. Mainly by using unsupervised or semi-supervised training methods together with large amounts of noisy data and lots of compute together with some clever engineering (softmax vs sigmoid).
+We saw a stream of papers and interesting ideas from the CLIP research branch that show us how to train state of the art image encoders in 2025. This is done by using unsupervised or semi-supervised training methods together with large amounts of noisy data, lots of compute and some clever engineering (softmax vs sigmoid).
 
 ## Final Thoughts
 
