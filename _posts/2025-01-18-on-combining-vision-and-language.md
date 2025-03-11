@@ -9,7 +9,7 @@ comments: yes
 published: true
 ---
 
-In the past few years, LLMs have been revolutionizing how we interact with computers. There have been consequences for computer vision as well, in this blog post we are going to take a look on how vision was impacted by the new opportunities LLMs have brought us. More specifically, we are going to discover how we went to pre-training on fixed categories of images to the entire internet.
+In the past few years, LLMs have been revolutionizing how we interact with computers. There have been consequences for computer vision as well, in this post we are going to take a look on how vision was impacted by the new opportunities LLMs have brought us. More specifically, we are going to discover how we went to pre-training on fixed categories to all the images on the internet.
 
 This blog post will mostly focus on how the process of pre-training for vision models has changed, we will not look at the architecture of the models itself (CNNs vs ViT).
 
@@ -42,20 +42,20 @@ It measures the angle between two vectors and is independent of their magnitude.
 
 $$ \text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{N} e^{z_j}}$$
 
-here $$z$$ is a vector of scores and $N$ is the number of elements in $$z$$.
+here $$z$$ is a vector of scores and $$N$$ is the number of elements in $$z$$.
 
-- **Softmax trick**: Large values for $z$, $$e^{z_i}$$ can lead to numerical instability (overflow). To address this, we use the "softmax trick":
+- **Softmax trick**: Large values for $$z$$, $$e^{z_i}$$ can lead to numerical instability (overflow). To address this, we use the "softmax trick":
 
 $$\text{softmax}(z)_i = \frac{e^{z_i - \max(z)}}{\sum_{j=1}^{N} e^{z_j - \max(z)}}$$
 
 where $$\max(z)$$ is the maximum value in the vector $$z$$. This works because
 
-Let $c = \max(z)$. Then:
+Let $$c = \max(z)$$. Then:
 
 $$\begin{align*}
 \text{softmax}(z)_i &= \frac{e^{z_i - c}}{\sum_{j=1}^{N} e^{z_j - c}} \\
 &= \frac{e^{z_i} e^{-c}}{\sum_{j=1}^{N} e^{z_j} e^{-c}} \\
-&= \frac{e^{z_i} e^{-c}}{e^{-c} \sum_{j=1}^{N} e^{z_j}} \\
+&= \frac{e^{-c} e^{z_i}}{e^{-c} \sum_{j=1}^{N} e^{z_j}} \\
 &= \frac{e^{z_i}}{\sum_{j=1}^{N} e^{z_j}}
 \end{align*}$$
 
@@ -113,13 +113,13 @@ $$ L_{SCE}(y, \hat{y}) = -\frac{1}{2} \sum_{i=1}^{C} \left[ y_i \log(\hat{y}_i) 
 
 - **InfoNCE loss**: Introduced by van der Oord et al in their paper [Representation Learning with Contrastive Predictive Coding](https://arxiv.org/abs/1807.03748). We want to maximize the mutual information between two original signals $$x$$ and $$c$$ defined as
 
-$$I(x, c)$$ = \sum_{x, c} p(x, c) \log \frac{p(x|c)}{p(x)$$.
+$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)$$.
 
 We want to model the density ratio of the signals as
 
-$$f(x_t, c_t) \prop \frac{p(x_t | c_t)}{p(x_t)}$$
+$$f(x_t, c_t) \propto \frac{p(x_t \mid c_t)}{p(x_t)}$$
 
-where $$f$$ is a model that is proportional to the true density, but does not have to integrate to 1. Given a set $$X = {x_1, \dotsc, x_N }$$ of N random samples containing one positive sample from $$p(x_t|c_t)$$ and $$N − 1$$ negative samples from the ’proposal’ distribution $$p(x_t)$$, we optimize
+where $$f$$ is a model that is proportional to the true density, but does not have to integrate to 1. Given a set $$X = \lbrace x_1, \dotsc, x_N \rbrace$$ of N random samples containing one positive sample from $$p(x_t|c_t)$$ and $$N − 1$$ negative samples from the ’proposal’ distribution $$p(x_t)$$, we optimize
 
 $$L_{RCE}(x, c) = - E_X \bigg \lbrace \log \frac{f(x_t, c_t)}{\sum_{x_j \in X} f(x_j, c_t)} \bigg \rbrace $$
 
