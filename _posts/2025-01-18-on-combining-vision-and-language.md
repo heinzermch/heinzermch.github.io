@@ -274,7 +274,7 @@ For:
 
 The softmax loss for contrastive learning is: 
 
-$$ L_{softmax} = \frac{1}{2N} \sum_{i=1}^{N} \Bigg( \log \frac{e^{t x_i y_i}}{\sum^{N}_{j=1} e^{t x_i y_j}} +   \log \frac{e^{t x_i y_i}}{\sum^{N}_{j=1} e^{t x_j y_i}} \Bigg)$$
+$$ L_{softmax} = \frac{1}{2N} \sum_{i=1}^{N} \left( \log \frac{e^{t x_i y_i}}{\sum_{j=1}^{N} e^{t x_i y_j}} + \log \frac{e^{t x_i y_i}}{\sum_{j=1}^{N} e^{t x_i y_j}} \right) $$
 
 
 The first part in the sum is image to text softmax, the second is text to image softmax. Note, due to the asymmetry of the softmax loss, the normalization is independently performed two times: across images and across texts.
