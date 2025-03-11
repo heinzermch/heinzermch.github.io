@@ -131,9 +131,9 @@ This loss will result in $$f(x_t, c_t)$$ estimating the density ratio in the pre
 
 This paper from OpenAI in 2021 introduces a new way of combining vision and language that scales with unlabled data and goes from predicting fixed pre-defined categories to free from text. It enabled zero-shot transfer to new tasks that were competitive with a fully supervised baseline.
 
-In that time GPT-3 showed what was possible in language, pre-train with self-supervised objective on enough data with enough compute and the models became competitive on many tasks with little to no task-specific data. This showed that web-scale data could surpass high-quality crowd-labeled NLP datasets. In computer vision this was not yet standard.
+During that time, GPT-3 showed what was possible in language: pre-train with self-supervised objective on enough data with enough compute and the models became competitive on many tasks with little to no task-specific data. This showed that web-scale data could surpass high-quality crowd-labeled NLP datasets. In computer vision this was not yet standard.
 
-In computer vision one option to take advantage of web-scale data was to pre-train models on noisy labeled datasets with classification tasks. Typical datasets would be ImageNet or JFT-300M (Google internal). These pre-trained backbones were then fine tuned on task specific training sets. This is also the approach we used at places where I worked at time (Panasonic, Scandit). However these pre-training approaches all used softmax losses to predict various categories. This limits the concepts that they learn to the specific categories in the pre-training sets and makes it harder to generalize in zero-shot settings.
+One option to take advantage of web-scale data was to pre-train models on noisy labeled datasets with classification tasks. Typical datasets would be ImageNet or JFT-300M (Google internal). These pre-trained backbones were then fine tuned on task specific training sets. This is also the approach we used at places where I worked at time (2018-2021). However these pre-training approaches all used softmax losses to predict various categories. This limits the concepts that they learn to the specific categories in the pre-training sets and makes it harder to generalize in zero-shot settings.
 
 CLIP closes that gap by pre-training image and language jointly at scale. Resulting in models that outperform the best publicly available ImageNet models while being more computationally efficient and robust. The core of this approach is learning perception from supervision contained in language.
 
@@ -142,20 +142,19 @@ The advantages learning from natural language (as opposed to classification) are
  - It learns a representation that connects language to vision
  - Better zero-shot transfer performance due to language interface
  
-The dataset for pre-training is 400 million image-text pairs obtained from the internet from 500k queries. The set is class balanced to contain up to 20k pairs per query. They call this dataset WIT for WebImageText.
+The dataset for pre-training are 400 million text-image pairs obtained from the internet by sampling images from 500k queries. The set is class balanced to contain up to 20k pairs per query. They call this dataset WIT for WebImageText.
 
 ## Training Process
-Predicting the exact words in an image-text pair was found to be wasteful in computation. Instead they adopt an approach from contrastive representation learning, tt predicts only if a text as a whole paired with an image makes sense:
+Predicting the exact words in an image-text pair was found to be wasteful in computation. Instead they adopt an approach from contrastive representation learning, predicting only if a text as a whole paired with an image makes sense:
 
-Given a batch of $$N$$ (image, text) pairs, CLIP is trained to predict which of the $$N \times N$$ possible (image, text) pairs across a batch occurred. To do this the model needs an image and text encoder that embed the inputs in the same space. The goal is then to maximize the cosine similarity between the image and text embeddings in the $$N$$ pairs, while minimizing the cosine similarity of the $$N^2-N$$ incorrect pairings. This is done with a symmetric cross entropy loss over all the similarity scores. Clip is trained from scratch without initializing the image encoder or the text encoder. The embeddings are then created with a linear projection to the multimodal embedding space.
+Given a batch of $$N$$ (image, text) pairs, CLIP is trained to predict which of the $$N \times N$$ possible (image, text) pairs across a batch occurred. To do this the model needs an image and a text encoder that embed into the same space. The goal is then to maximize the cosine similarity between the image and text embeddings in the $$N$$ pairs, while minimizing the cosine similarity of the $$N^2-N$$ incorrect pairings. This is done with a symmetric cross entropy loss over all the similarity scores. Clip is trained from scratch without initializing the image encoder or the text encoder. The embeddings are then created with a linear projection to the multimodal embedding space.
 
 
-![Clip pre-training setup matrix of text and image embeddings.](/assets/images/computer_vision_and_language/03_clip_human_comparison.png)
+![Clip pre-training setup matrix of text and image embeddings.](/assets/images/computer_vision_and_language/01_clip_pre_training.png)
 
 The symmetric cross-entropy loss for clip for $$N$$ text-image embedding pairs $$(t, i) \in (T,I)$$ and temperature $$t$$:
 
-$$ L_{clip}(T, I) = \frac{1}{2}\big(L_{CE}(T, I) + L_{CE}(I, T)\big)$$
-
+$$ L_{clip}(T, I) = \frac{1}{2}\big(L_{CE}(T, I) + L_{RCE}(I, T)\big)$$
 
 
 Pseudo code for CLIP loss:
@@ -193,6 +192,8 @@ The model is embedding entire sentences and not just words, this allows for usin
 Another issue is that in pre-training the images will often be paired with entire sentences (alt-text) and not single words, this means at inference time using single words will be out of distribution as a task.
 
 The paper uses a simple prompt template "A photo of a {label}" as a default. This default is then often adapted to each task.
+
+![How CLIP does inference with zero shot prediction.](/assets/images/computer_vision_and_language/02_clip_inference.png)
 
 Another option to increase performance is to ensemble over many different context prompts, which lead to an improvement of 3.5% over the default prompt.
 
