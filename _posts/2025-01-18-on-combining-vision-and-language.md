@@ -4,7 +4,7 @@ author: Michael Heinzer
 title:  "Combining Vision and Language"
 description: On combining large vision and language models.
 date:   2025-02-23 18:00:00 +0530
-categories: LLMs Vision SigLip ContrastiveLoss
+categories: LLMs Vision SigLip InfoNCE ContrastiveLoss
 comments: yes
 published: true
 ---
@@ -34,7 +34,7 @@ The dot product for non-zero vectors will be zero if the they are in a 90 degree
 
 - **Cosine similarity**: The cosine similarity is the normalized dot product between to vectors $$ \mathbf{a}, \mathbf{b} \in \mathbb{R}^n$$:
 
-$$ \cos(\theta) = \frac{a \cdot b}{\mid \mid a \mid \mid \mid \mid b \mid \mid}$$
+$$ \cos(\theta) = \frac{a \cdot b}{\mid \mid a \mid \mid \cdot \mid \mid b \mid \mid}$$
 
 It measures the angle between two vectors and is independent of their magnitude.
 
@@ -113,13 +113,13 @@ $$ L_{SCE}(y, \hat{y}) = -\frac{1}{2} \sum_{i=1}^{C} \left[ y_i \log(\hat{y}_i) 
 
 - **InfoNCE loss**: Introduced by van der Oord et al in their paper [Representation Learning with Contrastive Predictive Coding](https://arxiv.org/abs/1807.03748). We want to maximize the mutual information between two original signals $$x$$ and $$c$$ defined as
 
-$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)$$.
+$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)}$$.
 
 We want to model the density ratio of the signals as
 
 $$f(x_t, c_t) \propto \frac{p(x_t \mid c_t)}{p(x_t)}$$
 
-where $$f$$ is a model that is proportional to the true density, but does not have to integrate to 1. Given a set $$X = \lbrace x_1, \dotsc, x_N \rbrace$$ of N random samples containing one positive sample from $$p(x_t|c_t)$$ and $$N − 1$$ negative samples from the ’proposal’ distribution $$p(x_t)$$, we optimize
+where $$f$$ is a model that is proportional to the true density, but does not have to integrate to 1. Given a set $$X = \lbrace x_1, \dotsc, x_N \rbrace$$ of $$N$$ random samples containing one positive sample from $$p(x_t \mid c_t)$$ and $$N − 1$$ negative samples from the ’proposal’ distribution $$p(x_t)$$, we optimize
 
 $$L_{RCE}(x, c) = - E_X \bigg \lbrace \log \frac{f(x_t, c_t)}{\sum_{x_j \in X} f(x_j, c_t)} \bigg \rbrace $$
 
