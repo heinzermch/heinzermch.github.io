@@ -2,11 +2,11 @@
 layout: post
 author: Michael Heinzer
 title:  "Combining Vision and Language"
-description: On combining vision and language with LLMs
+description: On combining large vision and language models.
 date:   2025-02-23 18:00:00 +0530
 categories: LLMs Vision SigLip ContrastiveLoss
 comments: yes
-published: false
+published: true
 ---
 
 In the past few years, LLMs have been revolutionizing how we interact with computers. There have been consequences for computer vision as well, in this blog post we are going to take a look on how vision was impacted by the new opportunities LLMs have brought us. More specifically, we are going to discover how we went to pre-training on fixed categories of images to the entire internet.
@@ -129,7 +129,7 @@ This loss will result in $$f(x_t, c_t)$$ estimating the density ratio in the pre
 
 # Contrastive Language Image Pretraining (CLIP) - Feb 2021
 
-This paper from OpenAI in 2021 introduces a new way of combining vision and language that scales with data. It enabled zero-shot transfer to new tasks that were competitive with a fully supervised baseline.
+This paper from OpenAI in 2021 introduces a new way of combining vision and language that scales with unlabled data and goes from predicting fixed pre-defined categories to free from text. It enabled zero-shot transfer to new tasks that were competitive with a fully supervised baseline.
 
 In that time GPT-3 showed what was possible in language, pre-train with self-supervised objective on enough data with enough compute and the models became competitive on many tasks with little to no task-specific data. This showed that web-scale data could surpass high-quality crowd-labeled NLP datasets. In computer vision this was not yet standard.
 
@@ -145,24 +145,20 @@ The advantages learning from natural language (as opposed to classification) are
 The dataset for pre-training is 400 million image-text pairs obtained from the internet from 500k queries. The set is class balanced to contain up to 20k pairs per query. They call this dataset WIT for WebImageText.
 
 ## Training Process
-Predicting the exact words in an image-text pair was found to be wasteful in computation. Instead they adopt an approach from contrastive representation learning. It predicts only if a text as a whole paired with an image makes sense:
+Predicting the exact words in an image-text pair was found to be wasteful in computation. Instead they adopt an approach from contrastive representation learning, tt predicts only if a text as a whole paired with an image makes sense:
 
-Given a batch of $$N$$ (image, text) pairs, CLIP is trained to predict which of the $$N \times N$$ possible (image, text) pairs across a batch occurred. To do this the model needs an image and text encoder that embed the inputs in the same space. The goal is then to maximize the cosine similarity between the image and text embeddings in the $$N$$ pairs, while minimizing the cosine similarity of the $$N^2-N$$ incorrect pairings. This is done with a symmetric cross entropy loss over all the similarity scores.
+Given a batch of $$N$$ (image, text) pairs, CLIP is trained to predict which of the $$N \times N$$ possible (image, text) pairs across a batch occurred. To do this the model needs an image and text encoder that embed the inputs in the same space. The goal is then to maximize the cosine similarity between the image and text embeddings in the $$N$$ pairs, while minimizing the cosine similarity of the $$N^2-N$$ incorrect pairings. This is done with a symmetric cross entropy loss over all the similarity scores. Clip is trained from scratch without initializing the image encoder or the text encoder. The embeddings are then created with a linear projection to the multimodal embedding space.
 
 
 ![Clip pre-training setup matrix of text and image embeddings.](/assets/images/computer_vision_and_language/03_clip_human_comparison.png)
 
-TODO: Formula
+The symmetric cross-entropy loss for clip for $$N$$ text-image embedding pairs $$(t, i) \in (T,I)$$ and temperature $$t$$:
 
-First popularized by Oord et al (2018) as the InfoNCE loss.
-
-Clip is trained from scratch without initializing the image encoder or the text encoder. The embeddings are then created with a linear projection to the multimodal embedding space.
+$$ L_{clip}(T, I) = \frac{1}{2}\big(L_{CE}(T, I) + L_{CE}(I, T)\big)$$
 
 
 
-
-
-Pseudo code for CLIP:
+Pseudo code for CLIP loss:
 
 
 ```python
@@ -176,20 +172,19 @@ Pseudo code for CLIP:
 # extract feature representations of each modality
 I_f = image_encoder(I) #[n, d_i]
 T_f = text_encoder(T) #[n, d_t]
-# joint multimodal embedding [n, d_e]
-I_e = l2_normalize(np.dot(I_f, W_i), axis=1)
-T_e = l2_normalize(np.dot(T_f, W_t), axis=1)
-# scaled pairwise cosine similarities [n, n]
-logits = np.dot(I_e, T_e.T) * np.exp(t)
-# symmetric loss function
-labels = np.arange(n)
+# joint multimodal embedding 
+# normalize embeddings to unit length for cosine similarity
+I_e = l2_normalize(np.dot(I_f, W_i), axis=1) # [n, d_e]
+T_e = l2_normalize(np.dot(T_f, W_t), axis=1) # [n, d_e]
+# temperature scaled pairwise cosine similarities 
+logits = np.dot(I_e, T_e.T) * np.exp(t) # [n, n]
+# symmetric cross-entropy loss function
+labels = np.arange(n) 
+# diagonal is 1 and off-diagonal is zero
 loss_i = cross_entropy_loss(logits, labels, axis=0)
 loss_t = cross_entropy_loss(logits, labels, axis=1)
 loss = (loss_i + loss_t)/2
 ```
-
-
-
 
 
 ## Prompt Engineering
@@ -257,11 +252,9 @@ The second approach has orders of magnitude more data available (as we will see 
 
 ## Sigmoid Loss for Language Image Pre-Training - 2023
 
-The main contribution of this paper was a new loss for contrastive pre-training. Unlike the previously seen loss which uses softmax normalization, the sigmoid loss only operates on image-text pairs and we do not need a global view of the pairwise similarities for normalization.
+The main contribution of this paper was a new loss for contrastive pre-training. Unlike the previously seen loss which uses softmax normalization, the sigmoid loss only operates on image-text pairs and we do not need a global view of the pairwise similarities for normalization. This allows increased batch size while also improving the performance at smaller batch sizes.
 
-This allows increased batch size while also improving the performance at smaller batch sizes.
-
-The disentanglement from batch size and loss allows for further studying of impact of the ratio of positive to negative examples in a batch. Before this was fixed at N^2 pairs of which N were positive and N^2-N were negative.
+The disentanglement from batch size and loss allowed for further studying of impact of the ratio of positive to negative examples in a batch. Before this was fixed at $$N^2$$ pairs of which $$N$$ were positive and $$N^2-N$$ were negative.
 
 ### Theoretical Method
 
@@ -270,7 +263,7 @@ For:
  * $$f(\cdot)$$ an image model.
  * $$g(\cdot)$$ a text model.
  * $$B = \lbrace (I_1, T_1), (I_2, T_2), \cdots \rbrace$$ a mini-batch of image-text pairs.
- * $$ \mid B \mid $$ the mini-batch size.
+ * $$N = \mid B \mid $$ the mini-batch size.
  * $$x_i = \frac{f(I_i)}{\mid \mid f(I_i) \mid \mid_2}$$ a normalized image embedding.
  * $$y_i = \frac{g(T_i)}{\mid \mid g(T_i) \mid \mid_2}$$ a normalized text embedding.
  * $$t$$ a scalar parametrized as $$\exp(t')$$, where $$t'$$ is a freely learnable parameter.
@@ -278,14 +271,14 @@ For:
 
 The softmax loss for contrastive learning is: 
 
-$$ L_{softmax} = \frac{1}{2 \mid B \mid} \sum_{i=1}^{\mid B \mid} \Bigg( \log \frac{e^{t x_i y_i}{\sum^{\mid B \mid}_{j=1} e^{t x_i y_j}} +   \log \frac{e^{t x_i y_i}{\sum^{\mid B \mid}_{j=1} e^{t x_j y_i}} \Bigg)$$
+$$ L_{softmax} = \frac{1}{2 N} \sum_{i=1}^{N} \Bigg( \log \frac{e^{t x_i y_i}{\sum^{N}_{j=1} e^{t x_i y_j}} +   \log \frac{e^{t x_i y_i}{\sum^{N}_{j=1} e^{t x_j y_i}} \Bigg)$$
 
 
 The first part in the sum is image to text softmax, the second is text to image softmax. Note, due to the asymmetry of the softmax loss, the normalization is independently performed two times: across images and across texts.
 
 In case of the sigmoid loss, we do not require computing global normalization factors. Every image-text pair is processed independently. Turning the problem into a standard binary classification problem of all pair combinations. So for image-text pairs $$(I_i, T_j)$$ we have $$z_{ij} = 1$$ for $$i=j$$ and $$z_{ij} = -1$$ if $$i \neq j$$. The loss is defined as:
 
-$$L_{sig} = - \frac{1}{\mid B \mid} \sum^{\mid B \mid}_{i=1} \sum^{\mid B \mid}_{j=1} \log \frac{1}{1+e^{z_{ij}(-tx_i y_j + b)}}$$.
+$$L_{sig} = - \frac{1}{N} \sum^{N}_{i=1} \sum^{N}_{j=1} \log \frac{1}{1+e^{z_{ij}(-tx_i y_j + b)}}$$.
 
 There is a new bias term $$b$$ in this loss to correct for the heavy imbalance of many negatives that dominate the loss initially. The two terms are initialized as:
 
@@ -306,27 +299,27 @@ t = exp(t_prime)
 zimg = l2_normalize(img_emb) 
 ztxt = l2_normalize(txt_emb) 
 logits = dot(zimg, ztxt.T) * t + b 
-labels = 2 * eye(n) - ones(n) # -1 with diagonal 1 
+labels = 2 * eye(n) - ones(n) # Create a matrix with 1s on the diagonal and -1 elsewhere
 l = -sum(log_sigmoid(labels * logits)) / n
 ```
 
 ### Practical Considerations
 
-Contrastive learning in the form of the softmax loss typically uses data parallelism, computing the loss when data is split across $$D$$ devices is expensive because we need to gather all embeddings with expensive all-gather operations. And the materialization of a $$\mid B \mid \times \mid B \mid$$ matrix of pairwise similarities.
+Contrastive learning in the form of the softmax loss typically uses data parallelism, computing the loss when data is split across $$D$$ devices is expensive because we need to gather all embeddings with expensive all-gather operations. And the materialization of a $$N \times N$$ matrix of pairwise similarities.
 
-For the sigmoid loss a more efficient implementation exists that avoids these issues. If we assume that each device holds $$b = \frac{\mid B \mid}{D}$$ examples, then for each example we have one positive and $$b-1$$ negatives on the device. Then the text representations are permitted among the devices to calculate $$b$$ negative examples with each step. The loss is calculated on a per device basis for each local batch $$b$$ and summed up across devices. The process if visualized in the following image for three devices and four examples per device:
+For the sigmoid loss a more efficient implementation exists that avoids these issues. If we assume that each device holds $$b = \frac{N}{D}$$ examples, then for each example we have one positive and $$b-1$$ negatives on the device. Then the text representations are permitted among the devices to calculate $$b$$ negative examples with each step. The loss is calculated on a per device basis for each local batch $$b$$ and summed up across devices. The process if visualized in the following image for three devices and four examples per device:
 
 ![Figure 1 from paper showing how the text embeddings get propagated to calculate the complete loss.](/assets/images/computer_vision_and_language/06_siglip_advantage_on_tpu.png)
 
 
-The peak memory cost is reduced from $$ \mid B \mid^2$$ to $$ b^2$$, and $$b$$ can be kept constant while scaling up accelerators. This allows much larger batch sizes than the original cross-entropy loss. 
+The peak memory cost is reduced from $$ N^2$$ to $$ b^2$$, and $$b$$ can be kept constant while scaling up accelerators. This allows much larger batch sizes than the original cross-entropy loss. 
 
 There is a lot more engineering details and considerations in the paper that I don't want to go into too many details here:
 
 * SigLIP works better for smaller batch sizes, but at larger batch sizes like 32k softmax loss catches up. Larger batch sizes make more sense if training for longer, on ImageNet 0-shot transfer.
 * Increased batch size leads to increased training instability due to spikes in gradient norm, decreasing $$\beta_2$$ momentum helps.
 * Loss paradigm: softmax "pick the right class" vs. sigmoid "rate this pair".
-* Sigmoid loss allows to remove negatives from the training process, the only way to not decrease performance significantly is to keep the "hard examples". Which intuitively makes the most sense, since learning is done on these.
+* Sigmoid loss allows to remove negatives from the training process, the only way to not decrease performance significantly is to keep the "hard examples". Which intuitively makes the most sense, since learning is done on these. Here by hard examples we mean examples where the model makes large mistakes.
 
 
 
@@ -373,8 +366,6 @@ This loss is applied to per-patch features rather than the pooled image-level re
 The latter two losses are only added at 80% of the training process. Additionally they are only applied to augmented images, not the original one.
 
 
-
-
 # Conclusion
 
 We saw a couple of papers and interesting ideas from the CLIP research branch that show us how to train state of the art image encoders in 2025. Mainly by using unsupervised or semi-supervised training methods together with large amounts of noisy data and lots of compute together with some clever engineering (softmax vs sigmoid).
@@ -386,6 +377,7 @@ Some follow up questions and remarks for my future self or experts in this field
 * Similarly to LLMs, we seem to run out of training data as WebLI represents the entire (high quality) internet data, what else can be done? Generate more data with GenAI and use captioning for training smaller models?
 * Are there any tasks that are not covered yet with the current training approaches?
 * Could we use videos as another data source for further advances?
+* A very 2025 take, can we apply RL to improve vision further? Explored to some extend already in 2023 by the [Big Vision team](https://x.com/giffmana/status/1626695378362945541).
 
 
 ## References
