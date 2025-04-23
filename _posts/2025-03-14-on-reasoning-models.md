@@ -1,15 +1,20 @@
 ---
 layout: post
 author: Michael Heinzer
-title:  "Reasoning Models"
-description: On LLMs that "think"
+title:  "On Reasoning Models"
+description: How do LLMs "think", and what does that even mean
 date:   2025-02-23 18:00:00 +0530
 categories: LLMs Reasoning RL
 comments: yes
 published: false
 ---
 
-Hot topic of 2025. No papers, too proprietary. DeepSeek
+
+When I first started writing this post I thought it was going to be about "reasoning". However after some initial research it became clear that there are multiple interesting topics hiding behind the keyword: generalization, training vs inference compute and post training with reinforcement learning. Even the meaning of reasoning itself is ambiguous, is it about solving math and coding problems, or true system 2 thinking?
+
+As we will see there has been impressive progress recently, especially in the domains of math, coding and science. While this even seems to generalize beyond these domains, I still think these models due not truly reason, as in the sense of system 2 cognition (another ill-defined term). However this seems surprisingly, at least to me, not to be necessary to achieve peak human performance in math and coding. The real world impact of these skills is a topic for another day, and something that frequently comes up at lunch discussions at work.
+
+
 
 ## Basic Concepts and Notation
 
@@ -24,105 +29,68 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
     - At zero we are in the middle of the limits: $$ \sigma(0) = 0.5$$
   - The derivative of the sigmoid is $$\frac{\partial \sigma(x)}{\partial x} =  \sigma(x) (1-\sigma(x))$$
   
-- **Dot product**: The dot product between two vectors $$ \mathbf{a}, \mathbf{b} \in \mathbb{R}^n$$ is defined as
 
-  $$\mathbf{a} \cdot \mathbf{b} := \sum_{i=1}^n a_i b_i $$
-  
-The dot product for non-zero vectors will be zero if the they are in a 90 degree angle.
+# Using recurrence to achieve weak to strong generalization
+When doing research for this post I came accross this [talk](https://simons.berkeley.edu/talks/tom-goldstein-university-maryland-2024-09-26) from Tom Goldstein about ["Recurrance, a mechanism for weak-to-strong generalization -or- studying test time scaling without language models"](https://www.youtube.com/live/M7Kq0ooFFco) at the Simons Institute. Even though this talk was given just last summer, it feels like from a different era. Mostly because the speaker identifies as ["gpu poor"](https://www.youtube.com/live/M7Kq0ooFFco?si=RRgTNnthT8ZSYvJt&t=228). Nevertheless, the talk is a good introduction to some of the concepts we will see later on.
 
-- **Cosine similarity**: The cosine similarity is the normalized dot product between to vectors $$ \mathbf{a}, \mathbf{b} \in \mathbb{R}^n$$:
+Here the speaker defines weak-to-strong generalization as the ability of the model to solver "harder" problems than those in the training set. This is a fundamental ability of humans that still separates us from the current models: we can learn to solve a few easy problems $$e^{i \pi} + 1 = 0$$ and then logically extrapolate to much harder ones. All of this while using few samples, i.e. with much greater efficiency than current machine learning models.
 
-$$ \cos(\theta) = \frac{a \cdot b}{\mid \mid a \mid \mid \cdot \mid \mid b \mid \mid}$$
 
-It measures the angle between two vectors and is independent of their magnitude.
+The task they are using to test this is solving mazes, can you train on a 9x9 maze (left) and generalize to a 59x59 maze (right). Or even bigger ones as we will see later.
 
-- **Softmax**: The basic softmax function is defined as:
 
-$$ \text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{N} e^{z_j}}$$
+![Left: A 9x9 maze with solution. Right: a 59x59 maze with solution.](/assets/images/reasoning_models/01_small_maze_and_bigger_maze.png)
 
-here $$z$$ is a vector of scores and $$N$$ is the number of elements in $$z$$.
 
-- **Softmax trick**: Large values for $$z$$, $$e^{z_i}$$ can lead to numerical instability (overflow). To address this, we use the "softmax trick":
+To solve this problem with classical machine learning, we could use a feed-forward neural (FFN) network that has five different layers (left). Or we can use a feature extractor with a recurrent layer in the middle and a solution predictor at the end (middle). This means that the weights in the middle three layers (A) are shared. In practice it was necessary to add some skip connections from the input to the repeated middle layers (right).
 
-$$\text{softmax}(z)_i = \frac{e^{z_i - \max(z)}}{\sum_{j=1}^{N} e^{z_j - \max(z)}}$$
 
-where $$\max(z)$$ is the maximum value in the vector $$z$$. This works because
+![Left: A 9x9 maze with solution. Right: a 59x59 maze with solution.](/assets/images/reasoning_models/02_architecture_for_mazes.png)
 
-Let $$c = \max(z)$$. Then:
 
-$$\begin{align*}
-\text{softmax}(z)_i &= \frac{e^{z_i - c}}{\sum_{j=1}^{N} e^{z_j - c}} \\
-&= \frac{e^{z_i} e^{-c}}{\sum_{j=1}^{N} e^{z_j} e^{-c}} \\
-&= \frac{e^{-c} e^{z_i}}{e^{-c} \sum_{j=1}^{N} e^{z_j}} \\
-&= \frac{e^{z_i}}{\sum_{j=1}^{N} e^{z_j}}
-\end{align*}$$
+After training on 9x9 mazes we can then evaluate the different models on 13x13 mazes. Here is where things start to get interesting, with recurrent networks we can choose to spend more computation at test time. This is done by repeating the middle layers more often, in the graph below this is called iterations at test time. A FNN does not have that option, we can only do one forward pass through the whole network. For recurrent network this can help generalization, we can solve harder problems by spending more compute. This will be the overarching topic of this blog post.
 
-- **Entropy**: The self-information of an event $$x \in X$$ in a probability distribution $$p$$ is defined as
 
-$$I(x) = - \log(p(x))$$
+![Left: Performance of FFN vs Recurrent network on task outside of domain.](/assets/images/reasoning_models/03_performance_on_task_with_recurrence.png)
 
-For a probability $$p$$ distribution on a random variable $$X$$, the entropy $$H$$ of $$p$$ is defined as
+As the green and red plot line show, we have to be careful how the recurrent network is set up. Without skip connections and careful training the model can start "forgetting" the initial task, leading to a loss of performance for higher iterations (green line). Note that the recurrent model was only trained to deal with up to 30 iterations. This generalized to the previously mentioned 59x59 mazes and beyond. The authors show that this even works with a 801x801 maze when the model is run over 10'000 iterations.
 
-$$H_b(p) := -\sum_{x \in X} p(x) \log_b(p(x)) = E(I(X))$$
-
-where $$b$$ is the base of the logarithm, it is used to choose the unit of information.
-
-- **Kullback-Leibler Divergence**: The KL-divergence of two probability distributions $$p$$ and $$q$$ is defined as
-
-$$D_{KL}(p \mid\mid q) := \sum_{x \in X} p(x) \log\bigg(\frac{p(x)}{q(x)}\bigg) = - \sum_{x \in X} p(x) \log\bigg(\frac{q(x)}{p(x)}\bigg)$$
-
-Often we consider $$p$$ to be the true distribution and $$q$$ the approximation or model output. Then the KL-divergence would give us a measure of how much information is lost when we approximate $$p$$ with $$q$$. If the KL divergence is zero, then the two distributions are equal.
+![Left: Performance on 59x59 maze.](/assets/images/reasoning_models/04_plot_for_59x59_maze.png)
 
 
 
-- **Cross-Entropy**: The cross-entropy between two probability distributions $$p$$ an $$q$$ is defined as
 
-$$H(p,q) := H(p) + D_{KL}( p \mid \mid q) $$
+Youtube talk
 
-Cross-entropy is the sum of the entropy of the target variable and the penalty which we incur by approximating the true distribution $$p$$ with the distribution $$q$$. The terms can be simplified:
+Train on 9x9 maze and solve 800x800 maze. Works with 20000 iterations instead of 30 during train tim ewith RNN
 
-$$\begin{align*} 
- H(p,q) &=  H(p) + D_{KL}( p \mid \mid q) \\ 
-  &= -\sum_{x \in X} p(x) \log(p(x)) - \sum_{x \in X} p(x) \log\bigg(\frac{q(x)}{p(x)}\bigg) \\
- &=  -\sum_{x \in X} p(x) \log(p(x))  - \sum_{x \in X} p(x) \log(q(x))  + \sum_{x \in X} p(x)\log(p(x)) \\
+Test time computation is for weak to strong generalization.
 
-&= - \sum_{x \in X} p(x) \log(q(x))
-\end{align*}$$
+Having skip connections helps not forget. Using RNNs
 
-Only the KL-divergence depends on $$q$$, thus minimizing cross-entropy with respect to $$q$$ is equivalent to minimizing the KL-divergence.
+Apply this to chess, 
 
-- **Symmetric vs Asymmetric Cross-Entropy loss**: Since the KL-divergence is asymmetric, the CE-loss is also asymetric. This means the penalty for false positive is different from the penalty for a false negative. It is more sensitive to errors predicting the true class. This can be problematic when dealing with noisy labels, the model may overfit to incorrect information. 
+Sudoku is solved too.
 
-The standard cross-entropy loss is given by:
+But here we generalize in the same class of problems mostly. Easier task in same class chess/sudoku into harder task. But no generalization.
 
-$$L_{CE}(y, \hat{y}) = - \sum_{i=1}^{C} y_i \log(\hat{y}_i) $$
+Transformers need to train with many positional embeddins. Take into account least significant at first because transformers are causal. So for 123 write 321
 
-To create a symmetric cross-entropy loss, we can combine the standard cross-entropy with its reverse:
+Training: Backward pass, do a progressive loss. Gets compute cost down for training recurrent transformer loss. Also called truncated backprop.
 
-$$L_{RCE}(\hat{y}, y) = - \sum_{i=1}^{C} \hat{y}_i \log(y_i)$$
+Testing time compute is actually the ovearching topic here?
 
-The symmetric cross-entropy loss, $$L_{SCE}$$, can be defined as a combination of these two losses. A simple combination is the average:
+He is not a huge fan of CoT (why?). CoT needs human generated data to see recurrence (this seems not obviously true anymore after DeepSeek).
 
-$$ L_{SCE}(y, \hat{y}) = \frac{1}{2} \left[ L_{CE}(y, \hat{y}) + L_{RCE}(\hat{y}, y) \right] $$
-
-Substituting the definitions of $$L_{CE}$$ and $$L_{RCE}$$, we get:
-
-$$ L_{SCE}(y, \hat{y}) = -\frac{1}{2} \sum_{i=1}^{C} \left[ y_i \log(\hat{y}_i) + \hat{y}_i \log(y_i) \right]$$
-
-- **InfoNCE loss**: Introduced by van der Oord et al in their paper [Representation Learning with Contrastive Predictive Coding](https://arxiv.org/abs/1807.03748). We want to maximize the mutual information between two original signals $$x$$ and $$c$$ defined as
+Why doesn't it fully work? Positional encoding is not precise enough. Abacus embeddings solve this issue to see what number belongs to what number in the sequence.
 
 
-$$ I(x, c) = \sum_{x, c} p(x, c) \log \frac{p(x \mid c)}{p(x)}$$
 
-We want to model the density ratio of the signals as
+Easy to hard vs weak to strong generalization. Easy to hard is generalization outside of current problem space.
 
-$$f(x_t, c_t) \propto \frac{p(x_t \mid c_t)}{p(x_t)}$$
+Boosting is in a weaker category than recurrent computation, or even CoT.
 
-where $$f$$ is a model that is proportional to the true density, but does not have to integrate to 1. Given a set $$X = \lbrace x_1, \dotsc, x_N \rbrace$$ of $$N$$ random samples containing one positive sample from $$p(x_t \mid c_t)$$ and $$N − 1$$ negative samples from the ’proposal’ distribution $$p(x_t)$$, we optimize
-
-$$L_{RCE}(x, c) = - E_X \bigg \lbrace \log \frac{f(x_t, c_t)}{\sum_{x_j \in X} f(x_j, c_t)} \bigg \rbrace $$
-
-This loss will result in $$f(x_t, c_t)$$ estimating the density ratio in the previous equation. For a proof see the [paper](https://arxiv.org/abs/1807.03748). In other words, the InfoNCE loss encourages similar items to have similar embeddings and disimilar items to have different embeddings.
+Recurrent models vs diffusion models. Diffusion models are trained to solve problems in one step, not like these models that are trained to do multi step problem solving.
 
 
 
@@ -184,39 +152,57 @@ He says: Pre-training limitations are no longer a blocker, but we don't know wha
 Can we tell the model to tell how long to think? Can we make the model judge how long it should think about a specific task?
 
 
-## Using recurrence to achieve weak to strong generalization
-Youtube talk
 
-Train on 9x9 maze and solve 800x800 maze. Works with 20000 iterations instead of 30 during train tim ewith RNN
 
-Test time computation is for weak to strong generalization.
 
-Having skip connections helps not forget. Using RNNs
 
-Apply this to chess, 
+# State of reasoning
 
-Sudoku is solved too.
+[Video](https://www.youtube.com/watch?v=skT89EvIjrc&t=68s&ab_channel=LatentSpace)
 
-But here we generalize in the same class of problems mostly. Easier task in same class chess/sudoku into harder task. But no generalization.
 
-Transformers need to train with many positional embeddins. Take into account least significant at first because transformers are causal. So for 123 write 321
+Reasonign is poor direction for LLMs because they are not good at it
 
-Training: Backward pass, do a progressive loss. Gets compute cost down for training recurrent transformer loss. Also called truncated backprop.
+Why should LM reasoning be constrained to look like human reasoning?
 
-Testing time compute is actually the ovearching topic here?
+CoT on LM is outputting intermediate steps, LMs are per token devices. No way to hold intermediate states, this is why CoT is reasonable.
 
-He is not a huge fan of CoT (why?). CoT needs human generated data to see recurrence (this seems not obviously true anymore after DeepSeek).
+LLMs have randomness built in, failures in reasoning are somewhat a feature of this.
 
-Why doesn't it fully work? Positional encoding is not precise enough. Abacus embeddings solve this issue to see what number belongs to what number in the sequence.
+o1 is maximizing the CoT approach
 
-[Video link for the talk](https://www.youtube.com/live/M7Kq0ooFFco).
+o1 is RL on verifiable outcomes.
 
-Easy to hard vs weak to strong generalization. Easy to hard is generalization outside of current problem space.
 
-Boosting is in a weaker category than recurrent computation, or even CoT.
+1. Use rl on prompt and make many completions and grade the outcome. Helps RL policy to learn.
 
-Recurrent models vs diffusion models. Diffusion models are trained to solve problems in one step, not like these models that are trained to do multi step problem solving.
+2. Loss function more flexible than IT, can go over same prompts many more times
 
+post training flops exceed pre-training (for o1)
+
+
+Reinforcement fine tuning reasearch program (from OpenAI)
+
+Use repeated RL passes over data to encourage model to figure out more robust behaviors in domains.
+
+Requires:
+
+1. Training data with explicit correct answers
+2. A grader for verifying outputs
+3. A model that can sometimes generate a correct solution (even with low probability)
+
+So the RL signal can learn from this. 
+
+Key goal: Improve targeted skills reliably without degradation on other tasks. Big fear in industry, how is this exactly done? (Do some reesearch).
+
+How to check the answer? Need to verify with LLMs or parsing. Need more than yes/no loss function for reasoning?
+
+How would you grade code quality?
+
+
+# The unreasonable effectiveness of reasoning distillation: uwing deepseek R1 to beat openai o1
+
+[video](https://www.youtube.com/watch?v=jrf76uNs77k&ab_channel=LatentSpace)
 
 
 
@@ -245,6 +231,7 @@ A list of resources used to write this post, also useful for further reading:
 
 - [Learning to Reason with LLMs](https://www.youtube.com/live/Gr_eYXdHFis) talk of Noam Brown at Simons Institute
 - [Title](link) for XYZ
+- [Understanding Reasoning LLMs](https://magazine.sebastianraschka.com/p/understanding-reasoning-llms) blog post about reasoning in LLMs. Strong focus on DeepSeek.
 
 
 
