@@ -31,7 +31,7 @@ Once this is solved the progress is rapid, I can ask for new features and they a
 
 I have too much stuff after compiling for the first time, cursor throws an error in the view that shows the git status. Luckily cursor can also generate a decent .gitignore file, but even with this change it still refuses to show me the git view.
 
-
+I notice that everything I store is deleted when the backend restarts, nothing is permanent. I ask cursor to fix this and it creates an SQL lite database.
 
 
 

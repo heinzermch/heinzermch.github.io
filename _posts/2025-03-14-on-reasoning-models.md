@@ -6,13 +6,13 @@ description: How do LLMs "think", and what does that even mean
 date:   2025-02-23 18:00:00 +0530
 categories: LLMs Reasoning RL
 comments: yes
-published: false
+published: true
 ---
 
 
 When I first started writing this post I thought it was going to be about "reasoning". However after some initial research it became clear that there are multiple interesting topics hiding behind the keyword: generalization, training vs inference compute and post training with reinforcement learning. Even the meaning of reasoning itself is ambiguous, is it about solving math and coding problems, or true system 2 thinking?
 
-As we will see there has been impressive progress recently, especially in the domains of math, coding and science. While this even seems to generalize beyond these domains, I still think these models due not truly reason, as in the sense of system 2 cognition (another ill-defined term). However this seems surprisingly, at least to me, not to be necessary to achieve peak human performance in math and coding. The real world impact of these skills is a topic for another day, and something that frequently comes up at lunch discussions at work.
+As we will see there has been impressive progress recently, especially in the domains of math, coding and science. While advcancements seems to generalize beyond these domains, I still think these models due not truly reason, as in the sense of system 2 cognition (another ill-defined term). However this seems surprisingly, at least to me, not to be necessary to achieve peak human performance in math and coding. The real world impact of these skills is a topic for another day, and something that frequently comes up at lunch discussions at work.
 
 
 
@@ -31,12 +31,12 @@ Before we start, let us quickly repeat some basic concepts and their notation. R
   
 
 # Using recurrence to achieve weak to strong generalization
-When doing research for this post I came accross this [talk](https://simons.berkeley.edu/talks/tom-goldstein-university-maryland-2024-09-26) from Tom Goldstein about ["Recurrance, a mechanism for weak-to-strong generalization -or- studying test time scaling without language models"](https://www.youtube.com/live/M7Kq0ooFFco) at the Simons Institute. Even though this talk was given just last summer, it feels like from a different era. Mostly because the speaker identifies as ["gpu poor"](https://www.youtube.com/live/M7Kq0ooFFco?si=RRgTNnthT8ZSYvJt&t=228). Nevertheless, the talk is a good introduction to some of the concepts we will see later on.
+When doing research for this post I came accross this [talk](https://simons.berkeley.edu/talks/tom-goldstein-university-maryland-2024-09-26) from Tom Goldstein about ["Recurrance, a mechanism for weak-to-strong generalization -or- studying test time scaling without language models"](https://www.youtube.com/live/M7Kq0ooFFco) at the Simons Institute. Even though this talk was given just last summer, it feels like from a different era. Mostly because the speaker identifies as ["gpu poor"](https://www.youtube.com/live/M7Kq0ooFFco?si=RRgTNnthT8ZSYvJt&t=228) and the restrictions that follow from that. Nevertheless, the talk is a good introduction to some of the concepts we will see later on.
 
 Here the speaker defines weak-to-strong generalization as the ability of the model to solver "harder" problems than those in the training set. This is a fundamental ability of humans that still separates us from the current models: we can learn to solve a few easy problems $$e^{i \pi} + 1 = 0$$ and then logically extrapolate to much harder ones. All of this while using few samples, i.e. with much greater efficiency than current machine learning models.
 
 
-The task they are using to test this is solving mazes, can you train on a 9x9 maze (left) and generalize to a 59x59 maze (right). Or even bigger ones as we will see later.
+The task they are using to test this is solving mazes, can you train on a 9x9 maze (left) and generalize to a 59x59 maze (right). Or even bigger ones?
 
 
 ![Left: A 9x9 maze with solution. Right: a 59x59 maze with solution.](/assets/images/reasoning_models/01_small_maze_and_bigger_maze.png)
