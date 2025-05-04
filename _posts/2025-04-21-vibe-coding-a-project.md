@@ -4,6 +4,8 @@ author: michael
 title:  "Vibe Coding a Project in 2025"
 date:   2025-04-21 06:00:00 +0530
 categories: VibeCoding Cursor PersonalProject
+comments: yes
+published: false
 ---
 
 This is a post of a bit of a different flavor. I'm going to implement a project from scratch and document my learnings here. Recently the term "vibe coding" was invented by Andrey Karphaty, this is my attempt at doing a personal project in that fasion.

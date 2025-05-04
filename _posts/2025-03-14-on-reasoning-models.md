@@ -3,10 +3,10 @@ layout: post
 author: Michael Heinzer
 title:  "On Reasoning Models"
 description: How do LLMs "think", and what does that even mean
-date:   2025-02-23 18:00:00 +0530
+date:   2025-03-14 18:00:00 +0530
 categories: LLMs Reasoning RL
 comments: yes
-published: true
+published: false
 ---
 
 
@@ -58,43 +58,13 @@ As the green and red plot line show, we have to be careful how the recurrent net
 ![Left: Performance on 59x59 maze.](/assets/images/reasoning_models/04_plot_for_59x59_maze.png)
 
 
+This approach also worked well for chess and sudoku. What these problems have in common is that they are difficult to solve but easy to verify. This is something we will return to later in this post. The talk also goes into more details on how to teach LLMs addition, but this ends up being the same approach that worked for RNN being applied to transformers.
 
-
-Youtube talk
-
-Train on 9x9 maze and solve 800x800 maze. Works with 20000 iterations instead of 30 during train tim ewith RNN
-
-Test time computation is for weak to strong generalization.
-
-Having skip connections helps not forget. Using RNNs
-
-Apply this to chess, 
-
-Sudoku is solved too.
-
-But here we generalize in the same class of problems mostly. Easier task in same class chess/sudoku into harder task. But no generalization.
-
-Transformers need to train with many positional embeddins. Take into account least significant at first because transformers are causal. So for 123 write 321
-
-Training: Backward pass, do a progressive loss. Gets compute cost down for training recurrent transformer loss. Also called truncated backprop.
-
-Testing time compute is actually the ovearching topic here?
-
-He is not a huge fan of CoT (why?). CoT needs human generated data to see recurrence (this seems not obviously true anymore after DeepSeek).
-
-Why doesn't it fully work? Positional encoding is not precise enough. Abacus embeddings solve this issue to see what number belongs to what number in the sequence.
+In the bigger picture what we saw here is generalizing in the same class of problems, not across different problems. I.e. we learn to solve easy mazes or sudoku problems and then the model understands more complex cases of the same problem instances. What this approach does not help with is cross-problem generalization.
 
 
 
-Easy to hard vs weak to strong generalization. Easy to hard is generalization outside of current problem space.
-
-Boosting is in a weaker category than recurrent computation, or even CoT.
-
-Recurrent models vs diffusion models. Diffusion models are trained to solve problems in one step, not like these models that are trained to do multi step problem solving.
-
-
-
-# What
+# Learning to Reason With LLMs - Talk by Noam Brown
 
 Poker part, just scaling up, doing self play. Humans would talk long instead of act instantly for difficult problems.
 
